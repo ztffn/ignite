@@ -1,11 +1,31 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { MMKV } from "react-native-mmkv";
 
 import { AuthenticationStore, authenticationStoreSelector, createAuthenticationSlice } from "./AuthenticationStore";
 import { TripStore, tripStoreSelector, createTripSlice } from "./TripStore";
 import { ItineraryStore, itineraryStoreSelector, createItinerarySlice } from "./ItineraryStore";
 import { DocumentStore, documentStoreSelector, createDocumentSlice } from "./DocumentStore";
+
+// Create MMKV instance for storage
+const mmkvStorage = new MMKV();
+
+// Create a proper storage adapter for Zustand
+const createMMKVStorage = () => ({
+  getItem: (name: string) => {
+    const value = mmkvStorage.getString(name);
+    return Promise.resolve(value || null);
+  },
+  setItem: (name: string, value: string) => {
+    mmkvStorage.set(name, value);
+    return Promise.resolve();
+  },
+  removeItem: (name: string) => {
+    mmkvStorage.delete(name);
+    return Promise.resolve();
+  },
+});
 
 // Combine all store interfaces
 export interface RootStore extends AuthenticationStore, TripStore, ItineraryStore, DocumentStore {
@@ -33,27 +53,7 @@ export const useStore = create<RootStore>()(
     }),
     {
       name: "hopla-app-store",
-      storage: createJSONStorage(() => {
-        // Use MMKV for native, localStorage for web
-        if (typeof window !== 'undefined' && window.localStorage) {
-          return {
-            getItem: (name: string) => {
-              const value = window.localStorage.getItem(name);
-              return value ? Promise.resolve(value) : Promise.resolve(null);
-            },
-            setItem: (name: string, value: string) => {
-              window.localStorage.setItem(name, value);
-              return Promise.resolve();
-            },
-            removeItem: (name: string) => {
-              window.localStorage.removeItem(name);
-              return Promise.resolve();
-            },
-          };
-        }
-        // Fallback to AsyncStorage for React Native
-        return require('react-native-mmkv').MMKV;
-      }),
+      storage: createJSONStorage(() => createMMKVStorage()),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

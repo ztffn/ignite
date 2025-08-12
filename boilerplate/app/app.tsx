@@ -62,11 +62,12 @@ const config = {
  * @returns {JSX.Element} The rendered `App` component.
  */
 export function App() {
-  const {
-    initialNavigationState,
-    onNavigationStateChange,
-    isRestored: isNavigationStateRestored,
-  } = useNavigationPersistence(storage, NAVIGATION_PERSISTENCE_KEY)
+  // Temporarily disable navigation persistence to avoid storage errors
+  // const {
+  //   initialNavigationState,
+  //   onNavigationStateChange,
+  //   isRestored: isNavigationStateRestored,
+  // } = useNavigationPersistence(storage, NAVIGATION_PERSISTENCE_KEY)
 
   const [areFontsLoaded, fontLoadError] = useFonts(customFontsToLoad)
   const [isI18nInitialized, setIsI18nInitialized] = useState(false)
@@ -83,7 +84,7 @@ export function App() {
   // In iOS: application:didFinishLaunchingWithOptions:
   // In Android: https://stackoverflow.com/a/45838109/204044
   // You can replace with your own loading component if you wish.
-  if (!isNavigationStateRestored || !isI18nInitialized || (!areFontsLoaded && !fontLoadError)) {
+  if (!isI18nInitialized || (!areFontsLoaded && !fontLoadError)) {
     return null
   }
 
@@ -102,8 +103,8 @@ export function App() {
           <ThemeProvider>
             <AppNavigator
               linking={linking}
-              initialState={initialNavigationState}
-              onStateChange={onNavigationStateChange}
+              // initialState={initialNavigationState}
+              // onStateChange={onNavigationStateChange}
             />
           </ThemeProvider>
           {/* @demo remove-block-start */}

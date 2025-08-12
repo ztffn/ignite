@@ -4,3 +4,4 @@ export * from "./ItineraryScreen";
 export * from "./MapScreen";
 export * from "./ExploreScreen";
 export * from "./DocumentVaultScreen";
+export * from "./DashboardScreen";

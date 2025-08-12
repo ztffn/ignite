@@ -325,3 +325,59 @@ const MyComponent = () => {
     
 *   Maintains Ignite's performance and testing standards.
     
+
+# Design
+Inspired by Notion's minimalist design, should prioritize ease of navigation and readability while on the go. Focus on a clean layout, clear headings, and easily accessible features, prioritizing quick task completion and information access. 
+
+### Key Principles: 
+
+*   **Minimalist Design:**  Avoid clutter and unnecessary elements. Use a clean, uncluttered layout with ample white space.
+    
+*   **Intuitive Navigation:**  Make it easy to find what you need. Use a clear sidebar or top navigation bar with minimal options.
+    
+*   **Mobile Optimization:** Design for smaller screens. Ensure text is readable without zooming and that buttons and links are large enough to tap easily.
+    
+*   **Focus on Core Functionality:** Prioritize the most essential features for your needs, such as task management, note-taking, or quick reference information.
+    
+*   **Fast Loading Times:** Optimize images and content for quick loading, especially on mobile data. 
+    
+
+### Specific Elements to Consider: 
+
+*   **Dashboard:** A single, central dashboard for quick access to key areas.
+*   **Simple Task Management:** Use a clear, concise task list with options to mark items as complete.
+*   **Quick Capture:** A dedicated section for quickly jotting down notes or ideas.
+*   **Contextual Buttons:** Strategically placed buttons for adding new entries or accessing related information.
+*   **Minimalist Headers:** Use clear and concise headers to organize information.
+*   **Color-Coded Labels:** Use colors sparingly to highlight important information or categorize items.
+*   **Image Optimization:** Ensure images are optimized for mobile viewing.
+*   **Consistent Formatting:** Maintain a consistent font size and style throughout the template. 
+
+### Badges for point of interest  categories
+|     |     |     |
+| --- | --- | --- |
+| Name | Background | Text |
+| Default | `#FFFFFF` | `#373530` |
+| Gray | `#F1F1EF` | `#787774` |
+| Brown | `#F3EEEE` | `#976D57` |
+| Orange | `#F8ECDF` | `#CC782F` |
+| Yellow | `#FAF3DD` | `#C29343` |
+| Green | `#EEF3ED` | `#548164` |
+| Blue | `#E9F3F7` | `#487CA5` |
+| Purple | `#F6F3F8` | `#8A67AB` |
+| Pink | `#F9F2F5` | `#B35488` |
+| Red | `#FAECEC` | `#C4554D` |
+
+|     |     |     |
+| --- | --- | --- |
+| Name | Text-Darkmode | Background-Darkmode |
+| **Default** | `#D4D4D4` | `#191919` |
+| **Gray** | `#9B9B9B` | `#252525` |
+| **Brown** | `#A27763` | `#2E2724` |
+| **Orange** | `#CB7B37` | `#36291F` |
+| **Yellow** | `#C19138` | `#372E20` |
+| **Green** | `#4F9768` | `#242B26` |
+| **Blue** | `#447ACB` | `#1F282D` |
+| **Purple** | `#865DBB` | `#2A2430` |
+| **Pink** | `#BA4A78` | `#2E2328` |
+| **Red** | `#BE524B` | `#332523` |
