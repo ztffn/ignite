@@ -15,7 +15,7 @@ import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import { ExtendedEdge, useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"
 
-import { IconTypes, PressableIcon } from "./Icon"
+import { IconTypes, Icon } from "./Icon"
 import { Text, TextProps } from "./Text"
 
 export interface HeaderProps {
@@ -258,7 +258,7 @@ function HeaderAction(props: HeaderActionProps) {
 
   if (icon) {
     return (
-      <PressableIcon
+      <Icon
         size={24}
         icon={icon}
         color={iconColor}

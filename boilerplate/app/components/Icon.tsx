@@ -1,19 +1,46 @@
 import {
-  Image,
   ImageStyle,
   StyleProp,
   TouchableOpacity,
   TouchableOpacityProps,
   View,
-  ViewProps,
   ViewStyle,
 } from "react-native"
-
-import { useAppTheme } from "@/theme/context"
+import { Ionicons } from "@expo/vector-icons"
 
 export type IconTypes = keyof typeof iconRegistry
 
-type BaseIconProps = {
+export const iconRegistry = {
+  back: "arrow-back",
+  bell: "notifications",
+  caretLeft: "chevron-back",
+  caretRight: "chevron-forward",
+  check: "checkmark",
+  clap: "hand-left",
+  community: "people",
+  components: "grid",
+  debug: "bug",
+  github: "logo-github",
+  heart: "heart",
+  hidden: "eye-off",
+  ladybug: "bug",
+  lock: "lock-closed",
+  menu: "menu",
+  more: "ellipsis-horizontal",
+  pin: "location",
+  podcast: "mic",
+  settings: "settings",
+  slack: "chatbubbles",
+  view: "eye",
+  x: "close",
+  // New icons for bottom navigation
+  home: "home",
+  calendar: "calendar",
+  mapPin: "location",
+  compass: "compass",
+}
+
+interface IconProps extends TouchableOpacityProps {
   /**
    * The name of the icon
    */
@@ -38,50 +65,18 @@ type BaseIconProps = {
    * Style overrides for the icon container
    */
   containerStyle?: StyleProp<ViewStyle>
-}
 
-type PressableIconProps = Omit<TouchableOpacityProps, "style"> & BaseIconProps
-type IconProps = Omit<ViewProps, "style"> & BaseIconProps
-
-/**
- * A component to render a registered icon.
- * It is wrapped in a <TouchableOpacity />
- * @see [Documentation and Examples]{@link https://docs.infinite.red/ignite-cli/boilerplate/app/components/Icon/}
- * @param {PressableIconProps} props - The props for the `PressableIcon` component.
- * @returns {JSX.Element} The rendered `PressableIcon` component.
- */
-export function PressableIcon(props: PressableIconProps) {
-  const {
-    icon,
-    color,
-    size,
-    style: $imageStyleOverride,
-    containerStyle: $containerStyleOverride,
-    ...pressableProps
-  } = props
-
-  const { theme } = useAppTheme()
-
-  const $imageStyle: StyleProp<ImageStyle> = [
-    $imageStyleBase,
-    { tintColor: color ?? theme.colors.text },
-    size !== undefined && { width: size, height: size },
-    $imageStyleOverride,
-  ]
-
-  return (
-    <TouchableOpacity {...pressableProps} style={$containerStyleOverride}>
-      <Image style={$imageStyle} source={iconRegistry[icon]} />
-    </TouchableOpacity>
-  )
+  /**
+   * An optional function to be called when the icon is pressed
+   */
+  onPress?: TouchableOpacityProps["onPress"]
 }
 
 /**
  * A component to render a registered icon.
- * It is wrapped in a <View />, use `PressableIcon` if you want to react to input
- * @see [Documentation and Examples]{@link https://docs.infinite.red/ignite-cli/boilerplate/app/components/Icon/}
- * @param {IconProps} props - The props for the `Icon` component.
- * @returns {JSX.Element} The rendered `Icon` component.
+ * It is wrapped in a <TouchableOpacity /> if `onPress` is provided, otherwise a <View />.
+ *
+ * - [Documentation and Examples](https://github.com/infinitered/ignite/blob/master/docs/Components-Icon.md)
  */
 export function Icon(props: IconProps) {
   const {
@@ -90,50 +85,26 @@ export function Icon(props: IconProps) {
     size,
     style: $imageStyleOverride,
     containerStyle: $containerStyleOverride,
-    ...viewProps
+    ...WrapperProps
   } = props
 
-  const { theme } = useAppTheme()
-
-  const $imageStyle: StyleProp<ImageStyle> = [
-    $imageStyleBase,
-    { tintColor: color ?? theme.colors.text },
-    size !== undefined && { width: size, height: size },
-    $imageStyleOverride,
-  ]
+  const isPressable = !!WrapperProps.onPress
+  const Wrapper: React.ComponentType<TouchableOpacityProps> = WrapperProps?.onPress
+    ? TouchableOpacity
+    : View
 
   return (
-    <View {...viewProps} style={$containerStyleOverride}>
-      <Image style={$imageStyle} source={iconRegistry[icon]} />
-    </View>
+    <Wrapper
+      accessibilityRole={isPressable ? "imagebutton" : undefined}
+      {...WrapperProps}
+      style={$containerStyleOverride}
+    >
+      <Ionicons
+        name={iconRegistry[icon] as any}
+        size={size}
+        color={color}
+        style={$imageStyleOverride}
+      />
+    </Wrapper>
   )
-}
-
-export const iconRegistry = {
-  back: require("@assets/icons/back.png"),
-  bell: require("@assets/icons/bell.png"),
-  caretLeft: require("@assets/icons/caretLeft.png"),
-  caretRight: require("@assets/icons/caretRight.png"),
-  check: require("@assets/icons/check.png"),
-  clap: require("@assets/icons/demo/clap.png"), // @demo remove-current-line
-  community: require("@assets/icons/demo/community.png"), // @demo remove-current-line
-  components: require("@assets/icons/demo/components.png"), // @demo remove-current-line
-  debug: require("@assets/icons/demo/debug.png"), // @demo remove-current-line
-  github: require("@assets/icons/demo/github.png"), // @demo remove-current-line
-  heart: require("@assets/icons/demo/heart.png"), // @demo remove-current-line
-  hidden: require("@assets/icons/hidden.png"),
-  ladybug: require("@assets/icons/ladybug.png"),
-  lock: require("@assets/icons/lock.png"),
-  menu: require("@assets/icons/menu.png"),
-  more: require("@assets/icons/more.png"),
-  pin: require("@assets/icons/demo/pin.png"), // @demo remove-current-line
-  podcast: require("@assets/icons/demo/podcast.png"), // @demo remove-current-line
-  settings: require("@assets/icons/settings.png"),
-  slack: require("@assets/icons/demo/slack.png"), // @demo remove-current-line
-  view: require("@assets/icons/view.png"),
-  x: require("@assets/icons/x.png"),
-}
-
-const $imageStyleBase: ImageStyle = {
-  resizeMode: "contain",
 }

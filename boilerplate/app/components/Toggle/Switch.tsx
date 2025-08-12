@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useCallback } from "react"
 import { Animated, Image, ImageStyle, Platform, StyleProp, View, ViewStyle } from "react-native"
 
-import { iconRegistry } from "@/components/Icon"
+import { Icon } from "@/components/Icon"
 import { isRTL } from "@/i18n"
 import type { ThemedStyle } from "@/theme/types"
 import { useAppTheme } from "@/theme/context"
@@ -211,9 +211,11 @@ function SwitchAccessibilityLabel(props: SwitchInputProps & { role: "on" | "off"
       )}
 
       {accessibilityMode === "icon" && shouldLabelBeVisible && (
-        <Image
-          style={[$switchAccessibilityIcon, { tintColor: color }]}
-          source={role === "off" ? iconRegistry.hidden : iconRegistry.view}
+        <Icon
+          icon={role === "off" ? "hidden" : "view"}
+          size={16}
+          color={colors.palette.neutral800}
+          style={$icon}
         />
       )}
     </View>
@@ -249,6 +251,11 @@ const $switchAccessibilityIcon: ImageStyle = {
   width: 14,
   height: 14,
   resizeMode: "contain",
+}
+
+const $icon: ImageStyle = {
+  width: 14,
+  height: 14,
 }
 
 const $switchAccessibilityLine: ViewStyle = {
