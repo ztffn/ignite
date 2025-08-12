@@ -2,7 +2,11 @@
 
 ## Application Overview
 
+"intelligent travel companion for busy adventures"
+
 Hopla is a mobile-first travel companion app designed for modern travelers planning multi-city trips. The app uses a 393px max-width container centered on screen with a card-based interface, bottom tab navigation, and a comprehensive 9-color semantic system for travel contexts.
+
+
 
 ## Core Application Structure
 

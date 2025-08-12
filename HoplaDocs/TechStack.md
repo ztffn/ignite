@@ -1,10 +1,10 @@
 
 
-# Travel Companion — Tech Stack Spec (Focused)
+# Hopla Travel App — Tech Stack Spec (Updated for Ignite)
 
 ## 1) Goals & constraints
 
-*   **Single codebase** for mobile + web, zero “rewrite later”.
+*   **Single codebase** for mobile + web, zero "rewrite later".
     
 *   **Notion-like minimalism**, native feel on mobile, responsive on web.
     
@@ -21,18 +21,18 @@
 
 *   **Expo (React Native)** with **React Native Web** enabled.
     
-*   **expo-router v3** for file-based navigation on native & web (URLs + deep links).
+*   **React Navigation** (already implemented in Ignite) for navigation on native & web.
     
 
 **UI system**
 
-*   **Tamagui (OSS core)** for primitives, tokens, variants (RN + Web).
+*   **Ignite's built-in component system** for primitives, tokens, variants (RN + Web).
     
 *   **FlashList** (Shopify) for high-perf lists (Itinerary, Vault).
     
-*   **Icons:** `@tamagui/lucide-icons` (or `lucide-react-native`) for parity with current Lucide set.
+*   **Icons:** `lucide-react-native` for parity with current Lucide set.
     
-*   **Sheets/Bottom sheets:** Tamagui `Sheet` (RN + Web) for modals; optional `@gorhom/bottom-sheet` on native if needed.
+*   **Sheets/Bottom sheets:** Custom modal components using Ignite's Card and overlay system.
     
 
 **State & data**
@@ -66,7 +66,7 @@
 
 **Theming & tokens**
 
-*   `tamagui.config.ts` with design tokens that loosely mirror current shadcn variables (spacing, radius, color roles).
+*   **Ignite's theme system** with design tokens that loosely mirror current shadcn variables (spacing, radius, color roles).
     
 *   One theme for light/dark; minimal semantic roles (accent, surface, border, text).
     
@@ -119,23 +119,34 @@
 
 - - -
 
-## 4) Monorepo & tooling
+## 4) Project structure & tooling
 
-**Structure (pnpm + Turborepo)**
+**Structure (based on Ignite boilerplate)**
 
-bash
-
-CopyEdit
-
-`/apps   /mobile      # Expo app (iOS/Android + RN Web preview) /packages   /ui          # Tamagui primitives & components (Card, Chip, ListItem, Sheet, Toast)   /core        # domain types, zod schemas, hooks, date/geo utils   /adapters    # Map/OCR/Files/Directions/Push interfaces + impls (web/native)   /api         # typed Supabase client, query keys, service funcs   /config      # eslint, tsconfig, tamagui.config, env utils`
+```
+/hopla_ignite
+  /boilerplate-backup     # Original Ignite backup
+  /boilerplate            # Our Hopla app (modified Ignite)
+    /app
+      /components         # Ignite components + our custom ones
+      /screens           # Hopla screens (Today, Itinerary, Map, Explore, Vault)
+      /theme             # Ignite theme system + Hopla color tokens
+      /services          # API, maps, storage services
+      /utils             # Domain utilities, date/geo helpers
+      /context           # React Context for app state
+    /assets              # Images, icons, fonts
+    /ios                 # iOS native code
+    /android             # Android native code
+  /HoplaDocs             # Documentation
+```
 
 **DevX**
 
-*   TypeScript **strict**; ESLint + Prettier.
+*   TypeScript **strict**; ESLint + Prettier (already configured in Ignite).
     
 *   Husky + lint-staged (format/tsc on commit).
     
-*   Storybook (optional) on web for `/packages/ui` primitives.
+*   Storybook (optional) on web for component documentation.
     
 
 **CI/CD**
@@ -153,9 +164,9 @@ CopyEdit
 
 *   **Postgres** tables: `user`, `trip`, `segment`, `itinerary_item`, `place`, `place_trip`, `document`, `review`.
     
-*   Access via **PostgREST** or **Supabase JS** SDK; wrap in `/packages/api`.
+*   Access via **PostgREST** or **Supabase JS** SDK; wrap in `/app/services`.
     
-*   Use **zod** schemas in `/packages/core` to validate IO boundaries.
+*   Use **zod** schemas in `/app/utils` to validate IO boundaries.
     
 
 - - -
@@ -188,7 +199,7 @@ CopyEdit
 
 ## 8) Testing
 
-*   **Unit/Component**: Jest + React Testing Library (RN).
+*   **Unit/Component**: Jest + React Testing Library (RN) - already configured in Ignite.
     
 *   **E2E**: **Maestro** (scriptable workflows; CI-friendly).
     
@@ -197,67 +208,112 @@ CopyEdit
 
 - - -
 
-## 9) Migration guide (current web → universal RN + Tamagui)
+## 9) Migration guide (Ignite boilerplate → Hopla app)
 
-**What we keep**
+**What we keep from Ignite**
 
-*   Domain logic (TS types, zod schemas, utilities).
+*   Core component system (Button, Card, Text, etc.).
     
-*   Any API client logic (ported into `/packages/api`).
+*   Theme system (colors, spacing, typography).
     
-*   Color/category semantics (map them to Tamagui tokens).
+*   Navigation structure and utilities.
+    
+*   Testing setup and configuration.
+    
+*   Build and deployment configuration.
     
 
-**What we replace**
+**What we add for Hopla**
 
-*   **shadcn/ui + Tailwind** → **Tamagui** primitives + variants.
+*   **Custom screens**: Today, Itinerary, Map, Explore, Vault.
     
-*   **DOM elements** (`div/span/button`) → RN primitives (`Stack/View`, `Text`, `Button/Pressable`).
+*   **State management**: Zustand stores for app state.
     
-*   **Sonner toasts** → Tamagui `Toast` (or `react-native-toast-message`).
+*   **API integration**: Supabase client and services.
     
-*   **Modal overlays** → Tamagui `Sheet`.
+*   **Maps**: MapLibre integration with platform adapters.
     
-*   **Lucide React** → `lucide-react-native` / `@tamagui/lucide-icons`.
+*   **Offline support**: SQLite + sync mechanisms.
     
-*   **mapbox-gl-js only** → Map adapter (web: maplibre-gl; native: rn-maplibre-gl).
-    
-*   **File input** → `expo-document-picker`; **localStorage** → MMKV / SecureStore.
+*   **Forms**: react-hook-form + zod validation.
     
 
 **Process**
 
-1.  Stand up **Expo + RN Web** skeleton with Tamagui tokens.
+1.  **Setup base**: Install additional dependencies (Zustand, TanStack Query, etc.).
     
-2.  Port the **5 tabs** (Today, Itinerary, Map, Explore, Vault) as Tamagui screens.
+2.  **Create screens**: Build the 5 main Hopla screens using Ignite components.
     
-3.  Implement **MapAdapter** & **DirectionsService**; stub on web first.
+3.  **Implement services**: API, maps, storage, and offline services.
     
-4.  Port **Add-next-stop** sheet & **Route Timeline** using Tamagui `Sheet`.
+4.  **Add state management**: Zustand stores for trips, user, and app state.
+app/store/
+├── RootStore.ts          # Main store combining all slices
+├── AuthenticationStore.ts # User auth & profile
+├── TripStore.ts          # Trip management & state
+├── ItineraryStore.ts     # Daily plans & activities
+├── MapStore.ts           # Map state & locations
+├── DocumentStore.ts      # Document vault
+└── index.ts              # Exports
+
+import { useAuthenticationStore, useTripStore } from '../store';
+
+const MyComponent = () => {
+  const { user, setUser } = useAuthenticationStore();
+  const { trips, addTrip } = useTripStore();
+  
+  // Use the store...
+};
+
+5.  **Integrate backend**: Supabase auth, database, and storage.
     
-5.  Wire Supabase Auth + Storage; test offline on a physical Android.
+6.  **Test offline**: Verify offline functionality on physical devices.
     
-6.  Switch web preview from the old DOM app to **Expo Web**.
+7.  **Web testing**: Ensure React Native Web works properly.
     
 
 - - -
 
-## 10) Licensing & costs (stack implications)
+## 10) Dependencies to add
 
-*   **Tamagui OSS**: free. (Pro optional; not required.)
-    
-*   **MapLibre**: OSS. (If Mapbox APIs used for Directions/Places → usage fees.)
-    
-*   **Supabase**: free tier to start; scale with usage.
-    
-*   **OpenAI / Cloud Vision**: pay-as-you-go; gated by our quota service.
-    
+**Core dependencies (already in Ignite)**
+- ✅ expo, react-native, react
+- ✅ @react-navigation/native, @react-navigation/bottom-tabs
+- ✅ expo-dev-client, expo-splash-screen
+
+**Additional dependencies needed**
+```json
+{
+  "dependencies": {
+    "zustand": "^4.4.0",
+    "@tanstack/react-query": "^5.0.0",
+    "react-hook-form": "^7.45.0",
+    "zod": "^3.22.0",
+    "lucide-react-native": "^0.294.0",
+    "react-native-flash-list": "^1.6.0",
+    "react-native-maplibre-gl": "^8.1.0",
+    "maplibre-gl": "^2.4.0",
+    "expo-document-picker": "~11.5.0",
+    "expo-file-system": "~15.4.0",
+    "expo-media-library": "~15.4.0",
+    "expo-secure-store": "~12.8.0",
+    "expo-sqlite": "~11.3.0",
+    "expo-notifications": "~0.20.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "react-native-mmkv": "^3.2.0"
+  },
+  "devDependencies": {
+    "@tanstack/react-query-devtools": "^5.0.0",
+    "maestro": "^0.4.0"
+  }
+}
+```
 
 - - -
 
-## 11) Acceptance criteria (stack)
+## 11) Acceptance criteria (updated stack)
 
-*   App runs on **iOS, Android, and Web** from one repo.
+*   App runs on **iOS, Android, and Web** from one repo (using Ignite + RN Web).
     
 *   Basic flow works **offline**; reconnect merges without data loss.
     
@@ -265,5 +321,7 @@ CopyEdit
     
 *   CI builds mobile binaries; **Expo Web** preview link on each PR.
     
-*   No DOM APIs inside view components; adapters handle platform specifics.
+*   Uses Ignite's component system; no DOM APIs inside view components.
+    
+*   Maintains Ignite's performance and testing standards.
     
