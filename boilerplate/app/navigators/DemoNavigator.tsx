@@ -2,13 +2,13 @@ import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigatio
 import { CompositeScreenProps } from "@react-navigation/native"
 
 import type { AppStackParamList, AppStackScreenProps } from "./AppNavigator"
+import { Icon } from "../components/Icon"
 import { DashboardScreen } from "../screens/Hopla/DashboardScreen"
 import { DocumentVaultScreen } from "../screens/Hopla/DocumentVaultScreen"
 import { ExploreScreen } from "../screens/Hopla/ExploreScreen"
 import { ItineraryScreen } from "../screens/Hopla/ItineraryScreen"
 import { MapScreen } from "../screens/Hopla/MapScreen"
 import { useAppTheme } from "../theme/context"
-import { Icon } from "../components/Icon"
 
 export type DemoTabParamList = {
   DemoShowroom: { queryIndex?: string; itemIndex?: string }
@@ -54,11 +54,7 @@ export function DemoNavigator() {
         options={{
           tabBarLabel: "Home",
           tabBarIcon: ({ focused }: { focused: boolean }) => (
-            <Icon
-              icon="home"
-              color={focused ? colors.tint : colors.tintInactive}
-              size={20}
-            />
+            <Icon icon="home" color={focused ? colors.tint : colors.tintInactive} size={20} />
           ),
         }}
       />
@@ -68,11 +64,7 @@ export function DemoNavigator() {
         options={{
           tabBarLabel: "Itinerary",
           tabBarIcon: ({ focused }: { focused: boolean }) => (
-            <Icon
-              icon="calendar"
-              color={focused ? colors.tint : colors.tintInactive}
-              size={20}
-            />
+            <Icon icon="calendar" color={focused ? colors.tint : colors.tintInactive} size={20} />
           ),
         }}
       />
@@ -83,11 +75,7 @@ export function DemoNavigator() {
           tabBarAccessibilityLabel: "Map",
           tabBarLabel: "Map",
           tabBarIcon: ({ focused }: { focused: boolean }) => (
-            <Icon
-              icon="mapPin"
-              color={focused ? colors.tint : colors.tintInactive}
-              size={20}
-            />
+            <Icon icon="mapPin" color={focused ? colors.tint : colors.tintInactive} size={20} />
           ),
         }}
       />
@@ -97,11 +85,7 @@ export function DemoNavigator() {
         options={{
           tabBarLabel: "Explore",
           tabBarIcon: ({ focused }) => (
-            <Icon
-              icon="compass"
-              color={focused ? colors.tint : colors.tintInactive}
-              size={20}
-            />
+            <Icon icon="compass" color={focused ? colors.tint : colors.tintInactive} size={20} />
           ),
         }}
       />
@@ -110,12 +94,8 @@ export function DemoNavigator() {
         component={DocumentVaultScreen}
         options={{
           tabBarLabel: "Vault",
-          tabBarIcon: ({ focused }) => (
-            <Icon
-              icon="settings"
-              color={focused ? colors.tint : colors.tintInactive}
-              size={20}
-            />
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
+            <Icon icon="settings" color={focused ? colors.tint : colors.tintInactive} size={20} />
           ),
         }}
       />

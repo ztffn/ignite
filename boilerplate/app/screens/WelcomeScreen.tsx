@@ -8,12 +8,12 @@ import { TripCard } from "@/components/TripCard"
 import { useAuth } from "@/context/AuthContext"
 import { isRTL } from "@/i18n"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
-import type { ThemedStyle } from "@/theme/types"
+import { useTripStore } from "@/store"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
+import type { ThemedStyle } from "@/theme/types"
 import { useHeader } from "@/utils/useHeader"
 import { useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"
-import { useTripStore } from "@/store"
 
 const welcomeLogo = require("@assets/images/logo.png")
 
@@ -29,34 +29,34 @@ export const WelcomeScreen: FC<WelcomeScreenProps> = function WelcomeScreen(prop
   // Mock trip data for demonstration
   const mockTrips = [
     {
-      id: '1',
-      title: 'Paris',
-      subtitle: 'City of love',
-      imageUrl: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&h=600&fit=crop',
+      id: "1",
+      title: "Paris",
+      subtitle: "City of love",
+      imageUrl: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&h=600&fit=crop",
     },
     {
-      id: '2',
-      title: 'Tokyo',
-      subtitle: 'Where tradition meets future',
-      imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop',
+      id: "2",
+      title: "Tokyo",
+      subtitle: "Where tradition meets future",
+      imageUrl: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop",
     },
     {
-      id: '3',
-      title: 'New York',
-      subtitle: 'The city that never sleeps',
-      imageUrl: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop',
+      id: "3",
+      title: "New York",
+      subtitle: "The city that never sleeps",
+      imageUrl: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop",
     },
     {
-      id: '4',
-      title: 'Barcelona',
-      subtitle: 'Art, architecture & Mediterranean charm',
-      imageUrl: 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop',
+      id: "4",
+      title: "Barcelona",
+      subtitle: "Art, architecture & Mediterranean charm",
+      imageUrl: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop",
     },
     {
-      id: '5',
-      title: 'Bali',
-      subtitle: 'Island paradise & spiritual retreat',
-      imageUrl: 'https://images.unsplash.com/photo-1537953773345-d172ccf13b24?w=800&h=600&fit=crop',
+      id: "5",
+      title: "Bali",
+      subtitle: "Island paradise & spiritual retreat",
+      imageUrl: "https://images.unsplash.com/photo-1537953773345-d172ccf13b24?w=800&h=600&fit=crop",
     },
   ]
 
@@ -65,38 +65,38 @@ export const WelcomeScreen: FC<WelcomeScreenProps> = function WelcomeScreen(prop
   }
 
   const handleTripPress = (tripId: string) => {
-    console.log('Trip selected:', tripId)
-    
+    console.log("Trip selected:", tripId)
+
     // Find the selected trip from mock data
-    const selectedTrip = mockTrips.find(trip => trip.id === tripId)
+    const selectedTrip = mockTrips.find((trip) => trip.id === tripId)
     if (selectedTrip) {
       // Convert mock trip to proper Trip format and select it
       const tripData = {
         id: selectedTrip.id,
         title: selectedTrip.title,
         subtitle: selectedTrip.subtitle,
-        startDate: '2024-01-15',
-        endDate: '2024-01-22',
+        startDate: "2024-01-15",
+        endDate: "2024-01-22",
         currentDay: 3,
-        currentCityId: 'paris',
+        currentCityId: "paris",
         cities: [
           {
-            id: 'paris',
-            name: 'Paris',
+            id: "paris",
+            name: "Paris",
             startDay: 1,
             endDay: 7,
-            country: 'France',
-            timezone: 'Europe/Paris'
-          }
+            country: "France",
+            timezone: "Europe/Paris",
+          },
         ],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       }
-      
+
       // Select the trip in the store
       selectTrip(tripData)
     }
-    
+
     // Navigate to the trip home page (DemoShowroomScreen)
     navigation.navigate("Demo", { screen: "DemoShowroom", params: {} })
   }
@@ -127,7 +127,7 @@ export const WelcomeScreen: FC<WelcomeScreenProps> = function WelcomeScreen(prop
         <Text style={themed($sectionSubtitle)}>
           Select a destination to start planning your trip
         </Text>
-        
+
         {mockTrips.map((trip) => (
           <TripCard
             key={trip.id}

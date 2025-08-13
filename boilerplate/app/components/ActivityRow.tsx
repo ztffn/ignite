@@ -1,8 +1,9 @@
 import { memo } from "react"
 import { View, TouchableOpacity } from "react-native"
+
 import { Card } from "./Card"
-import { Text } from "./Text"
 import { Icon, IconTypes } from "./Icon"
+import { Text } from "./Text"
 import { useAppTheme } from "../theme/context"
 
 export type ActivityType =
@@ -64,7 +65,12 @@ export const ActivityRow = memo((props: ActivityRowProps) => {
             <Icon icon={typeToIcon[type]} size={18} color={colors.tint} />
             <Text style={{ marginLeft: spacing.sm, fontWeight: "600" }}>{title}</Text>
             {hasDocument ? (
-              <Icon icon="document" size={14} color={colors.textDim} style={{ marginLeft: spacing.xs }} />
+              <Icon
+                icon="document"
+                size={14}
+                color={colors.textDim}
+                style={{ marginLeft: spacing.xs }}
+              />
             ) : null}
           </View>
           {subtitle ? (
@@ -75,5 +81,3 @@ export const ActivityRow = memo((props: ActivityRowProps) => {
     </TouchableOpacity>
   )
 })
-
-

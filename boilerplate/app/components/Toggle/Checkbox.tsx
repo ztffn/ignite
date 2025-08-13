@@ -101,14 +101,7 @@ function CheckboxInput(props: CheckboxInputProps) {
           { opacity: opacity.current },
         ]}
       >
-        {icon && (
-          <Icon
-            icon={icon}
-            size={16}
-            color={colors.palette.neutral800}
-            style={$icon}
-          />
-        )}
+        {icon && <Icon icon={icon} size={16} color={colors.palette.neutral800} style={$icon} />}
       </Animated.View>
     </View>
   )

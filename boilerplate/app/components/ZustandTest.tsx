@@ -1,24 +1,25 @@
-import React from 'react';
-import { View, Text, Button } from 'react-native';
-import { useAuthenticationStore, useTripStore } from '../store';
+import React from "react"
+import { View, Text, Button } from "react-native"
+
+import { useAuthenticationStore, useTripStore } from "../store"
 
 export const ZustandTest = () => {
-  const { user, isAuthenticated, setUser } = useAuthenticationStore();
-  const { trips, addTrip } = useTripStore();
+  const { user, isAuthenticated, setUser } = useAuthenticationStore()
+  const { trips, addTrip } = useTripStore()
 
   const handleLogin = () => {
     setUser({
-      id: '1',
-      email: 'test@example.com',
-      name: 'Test User',
+      id: "1",
+      email: "test@example.com",
+      name: "Test User",
       preferences: {
-        language: 'en',
-        currency: 'USD',
-        timezone: 'UTC',
+        language: "en",
+        currency: "USD",
+        timezone: "UTC",
         notifications: true,
       },
-    });
-  };
+    })
+  }
 
   const handleAddTrip = () => {
     addTrip({
@@ -26,23 +27,25 @@ export const ZustandTest = () => {
       title: `Test Trip ${trips.length + 1}`,
       startDate: new Date().toISOString(),
       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'planning',
+      status: "planning",
       currentDay: 1,
       totalDays: 7,
       cities: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
-  };
+    })
+  }
 
   return (
     <View style={{ padding: 20, gap: 10 }}>
-      <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Zustand Store Test</Text>
-      
+      <Text style={{ fontSize: 18, fontWeight: "bold" }}>Zustand Store Test</Text>
+
       <View style={{ gap: 5 }}>
-        <Text>Authentication Status: {isAuthenticated ? 'Logged In' : 'Not Logged In'}</Text>
+        <Text>Authentication Status: {isAuthenticated ? "Logged In" : "Not Logged In"}</Text>
         {user && (
-          <Text>User: {user.name} ({user.email})</Text>
+          <Text>
+            User: {user.name} ({user.email})
+          </Text>
         )}
       </View>
 
@@ -59,9 +62,9 @@ export const ZustandTest = () => {
         ) : (
           <Button title="Logout" onPress={() => setUser(null)} />
         )}
-        
+
         <Button title="Add Test Trip" onPress={handleAddTrip} />
       </View>
     </View>
-  );
-};
+  )
+}
