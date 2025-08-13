@@ -141,7 +141,6 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
   // Shared values for animations
   const translateY = useSharedValue(0)
   const scale = useSharedValue(1)
-  const opacity = useSharedValue(1)
   const shadowOpacity = useSharedValue(0.1)
   const isLongPressed = useSharedValue(false)
   const spacingOffset = useSharedValue(0)
@@ -152,30 +151,18 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
     .manualActivation(true)
     .onTouchesMove((_, state) => {
       if (isLongPressed.value && isDragging) {
-        console.log(`[Card ${index}] Activating pan gesture - long press active and parent says dragging`)
         state.activate()
       }
     })
     .onUpdate((event) => {
       if (!isLongPressed.value || !isDragging) {
-        console.log(`[Card ${index}] Pan update blocked:`, {
-          isLongPressed: isLongPressed.value,
-          isDragging,
-          translationY: event.translationY,
-        })
         return // Only process if long-pressed AND dragging
       }
-
-      console.log(`[Card ${index}] Pan update:`, {
-        translationY: event.translationY,
-        hasDragged: hasDragged.value,
-      })
 
       translateY.value = event.translationY
 
       if (!hasDragged.value && Math.abs(event.translationY) > 1) {
         hasDragged.value = true
-        console.log(`[Card ${index}] Marked as dragged`)
       }
 
       const dragDistance = event.translationY
@@ -184,7 +171,6 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
       const hoverIndex = Math.max(0, Math.min(index + delta, listLength - 1))
 
       if (onDragUpdate && hoverIndex !== index) {
-        console.log(`[Card ${index}] Calling onDragUpdate:`, { from: index, to: hoverIndex })
         runOnJS(onDragUpdate)(index, hoverIndex)
       }
 
@@ -198,15 +184,7 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
       // Note: We'll need to add rotation to the animated style
     })
     .onEnd((event) => {
-      console.log(`[Card ${index}] Pan end:`, {
-        isLongPressed: isLongPressed.value,
-        isDragging,
-        translationY: event.translationY,
-        hasDragged: hasDragged.value,
-      })
-      
       if (!isLongPressed.value || !isDragging) {
-        console.log(`[Card ${index}] Pan end blocked - not in valid drag state`)
         return
       }
 
@@ -216,18 +194,10 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
       const unclamped = index + delta
       const newIndex = Math.max(0, Math.min(unclamped, Math.max(0, listLength - 1)))
 
-      console.log(`[Card ${index}] Drag end calculation:`, {
-        dragDistance,
-        delta,
-        unclamped,
-        newIndex,
-        itemHeight,
-      })
-
+      console.log(`[Card ${index}] 🎯 DROP: ${index} → ${newIndex}`)
       runOnJS(onDragEnd)(index, newIndex)
 
       // Don't reset state here - let the parent's isDragging change trigger the cleanup effect
-      console.log(`[Card ${index}] Drag end complete - waiting for parent state change`)
     })
     .shouldCancelWhenOutside(false)
 
@@ -236,7 +206,7 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
     .minDuration(500)
     .maxDistance(5)
     .onStart(() => {
-      console.log(`[Card ${index}] Long press started`)
+      console.log(`[Card ${index}] 🚀 DRAG START`)
       isLongPressed.value = true
       
       // Enhanced lift effect - more pronounced than before
@@ -251,7 +221,6 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
         stiffness: 300 
       })
       
-      console.log(`[Card ${index}] Calling onDragStart`)
       runOnJS(onDragStart)(index)
     })
     .shouldCancelWhenOutside(false)
@@ -261,41 +230,21 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
 
   // Cleanup effect to ensure no stuck states
   React.useEffect(() => {
-    console.log(`[Card ${index}] Cleanup effect:`, {
-      isDragging,
-      isLongPressed: isLongPressed.value,
-      hasDragged: hasDragged.value,
-      translateY: translateY.value,
-      scale: scale.value,
-      opacity: opacity.value,
-    })
-    
     // If parent says we're not dragging, immediately reset everything
     if (!isDragging) {
-      console.log(`[Card ${index}] Parent says not dragging - resetting all values`)
+      console.log(`[Card ${index}] 🔄 RESET - Parent says not dragging`)
       isLongPressed.value = false
       hasDragged.value = false
       translateY.value = 0
       spacingOffset.value = 0
       scale.value = 1
-      opacity.value = 1
       shadowOpacity.value = 0.1
     }
   }, [isDragging]) // Only depend on parent's isDragging state
 
   // React to draggedOverIndex changes to create proper swap animations
   React.useEffect(() => {
-    console.log(`[Card ${index}] Spacing effect:`, {
-      isDragging,
-      isLongPressed: isLongPressed.value,
-      draggedOverIndex,
-      originalDragIndex,
-      myIndex: index,
-      spacingOffset: spacingOffset.value,
-    })
-    
     if (isDragging && isLongPressed.value) {
-      console.log(`[Card ${index}] This is the dragging item - no spacing offset`)
       // If this is the dragging item, don't apply spacing offset
       spacingOffset.value = withSpring(0)
     } else if (typeof draggedOverIndex === "number" && typeof originalDragIndex === "number") {
@@ -319,22 +268,24 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
           shouldMove = true
           moveDistance = estimatedItemHeight + spacing.sm // Move down
         }
+      } else if (hoverIndex === startIndex) {
+        // Hovering at original position - no items should move
+        shouldMove = false
+        moveDistance = 0
       }
 
-      console.log(`[Card ${index}] Spacing calculation:`, {
-        hoverIndex,
-        startIndex,
-        myIndex,
-        shouldMove,
-        moveDistance,
-      })
+      // Only log spacing changes - this shows which slots are opening
+      if (shouldMove) {
+        console.log(`[Card ${index}] 📍 SPACING: MOVE ${moveDistance}px (hover:${hoverIndex}, start:${startIndex})`)
+      } else if (hoverIndex === startIndex) {
+        console.log(`[Card ${index}] 📍 SPACING: RESET - back to original position`)
+      }
 
       spacingOffset.value = withSpring(shouldMove ? moveDistance : 0, {
         damping: shouldMove ? 25 : 35, // Faster return to normal
         stiffness: shouldMove ? 400 : 600,
       })
     } else {
-      console.log(`[Card ${index}] No drag happening - resetting spacing`)
       // No drag happening, reset quickly
       spacingOffset.value = withSpring(0, {
         damping: 35,
@@ -342,6 +293,14 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
       })
     }
   }, [draggedOverIndex, originalDragIndex, index, isDragging, estimatedItemHeight, spacing.sm])
+
+  // Debug transparency issues - only log when values are unexpected
+  React.useEffect(() => {
+    // Only check when dragging starts/stops, not continuously
+    if (isDragging) {
+      console.log(`[Card ${index}] 🔍 DRAGGING - will check for transparency issues`)
+    }
+  }, [isDragging]) // Only depend on isDragging boolean, not shared values
 
   // Animated styles
   const animatedStyle = useAnimatedStyle(() => {
@@ -352,26 +311,12 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
       Extrapolate.CLAMP,
     )
 
-    // Debug logging for transform values
-    if (isLongPressed.value || isDragging) {
-      console.log(`[Card ${index}] Animated style update:`, {
-        translateY: translateY.value,
-        spacingOffset: spacingOffset.value,
-        totalTranslateY: translateY.value + spacingOffset.value,
-        scale: scale.value,
-        rotation,
-        isLongPressed: isLongPressed.value,
-        isDragging,
-      })
-    }
-
     return {
       transform: [
         { translateY: translateY.value + spacingOffset.value }, // This makes other elements move!
         { scale: scale.value },
         { rotate: `${rotation}deg` },
       ],
-      // opacity: opacity.value, // Removed to keep card fully opaque
       zIndex: isLongPressed.value || isDragging ? 1000 : 1,
     }
   })
@@ -440,7 +385,7 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
             <GestureDetector gesture={handleGesture}>
               <View style={{ marginLeft: spacing.sm }}>
                 <DragHandle 
-                  isActive={isLongPressed.value || isDragging} 
+                  isActive={isDragging} 
                   color={colors.textDim} 
                 />
               </View>
