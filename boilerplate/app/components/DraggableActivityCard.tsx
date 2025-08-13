@@ -95,8 +95,6 @@ interface DraggableActivityCardProps {
   onDragEnd: (fromIndex: number, toIndex: number) => void
   onDragUpdate?: (dragIndex: number, hoverIndex: number) => void
   isDragging: boolean
-  draggedOverIndex?: number | null
-  originalDragIndex?: number | null
   onPress?: () => void
   listLength: number
   estimatedItemHeight?: number
@@ -111,8 +109,6 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
   onDragEnd,
   onDragUpdate,
   isDragging,
-  draggedOverIndex,
-  originalDragIndex,
   onPress,
   listLength,
   estimatedItemHeight = 112,
@@ -143,7 +139,6 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
   const scale = useSharedValue(1)
   const shadowOpacity = useSharedValue(0.1)
   const isLongPressed = useSharedValue(false)
-  const spacingOffset = useSharedValue(0)
   const hasDragged = useSharedValue(false)
 
   // Pan gesture - only activates after long press succeeds
@@ -168,20 +163,20 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
       const dragDistance = event.translationY
       const itemHeight = estimatedItemHeight + spacing.sm
       const delta = Math.round(dragDistance / itemHeight)
-      const hoverIndex = Math.max(0, Math.min(index + delta, listLength - 1))
+
+      // Calculate hover index with better threshold logic
+      let hoverIndex: number
+      if (Math.abs(dragDistance) < itemHeight * 0.25) {
+        // If very close to original position, stay at original
+        hoverIndex = index
+      } else {
+        // Otherwise calculate based on drag distance
+        hoverIndex = Math.max(0, Math.min(index + delta, listLength - 1))
+      }
 
       if (onDragUpdate && hoverIndex !== index) {
         runOnJS(onDragUpdate)(index, hoverIndex)
       }
-
-      // Add subtle rotation for "picked up" feel
-      const rotation = interpolate(
-        Math.abs(event.translationY),
-        [0, DRAG_THRESHOLD],
-        [0, 2],
-        Extrapolate.CLAMP,
-      )
-      // Note: We'll need to add rotation to the animated style
     })
     .onEnd((event) => {
       if (!isLongPressed.value || !isDragging) {
@@ -196,8 +191,6 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
 
       console.log(`[Card ${index}] 🎯 DROP: ${index} → ${newIndex}`)
       runOnJS(onDragEnd)(index, newIndex)
-
-      // Don't reset state here - let the parent's isDragging change trigger the cleanup effect
     })
     .shouldCancelWhenOutside(false)
 
@@ -208,19 +201,19 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
     .onStart(() => {
       console.log(`[Card ${index}] 🚀 DRAG START`)
       isLongPressed.value = true
-      
+
       // Enhanced lift effect - more pronounced than before
-      scale.value = withSpring(1.08, { 
-        damping: 20, 
+      scale.value = withSpring(1.08, {
+        damping: 20,
         stiffness: 300,
         mass: 0.8,
       })
-      
-      shadowOpacity.value = withSpring(0.6, { 
-        damping: 20, 
-        stiffness: 300 
+
+      shadowOpacity.value = withSpring(0.6, {
+        damping: 20,
+        stiffness: 300,
       })
-      
+
       runOnJS(onDragStart)(index)
     })
     .shouldCancelWhenOutside(false)
@@ -236,63 +229,10 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
       isLongPressed.value = false
       hasDragged.value = false
       translateY.value = 0
-      spacingOffset.value = 0
       scale.value = 1
       shadowOpacity.value = 0.1
     }
   }, [isDragging]) // Only depend on parent's isDragging state
-
-  // React to draggedOverIndex changes to create proper swap animations
-  React.useEffect(() => {
-    if (isDragging && isLongPressed.value) {
-      // If this is the dragging item, don't apply spacing offset
-      spacingOffset.value = withSpring(0)
-    } else if (typeof draggedOverIndex === "number" && typeof originalDragIndex === "number") {
-      const hoverIndex = draggedOverIndex
-      const startIndex = originalDragIndex
-      const myIndex = index
-
-      // Determine if this item should move and in which direction
-      let shouldMove = false
-      let moveDistance = 0
-
-      if (hoverIndex > startIndex) {
-        // Dragging downward - items between start and hover move up
-        if (myIndex > startIndex && myIndex <= hoverIndex) {
-          shouldMove = true
-          moveDistance = -(estimatedItemHeight + spacing.sm) // Move up
-        }
-      } else if (hoverIndex < startIndex) {
-        // Dragging upward - items between hover and start move down
-        if (myIndex >= hoverIndex && myIndex < startIndex) {
-          shouldMove = true
-          moveDistance = estimatedItemHeight + spacing.sm // Move down
-        }
-      } else if (hoverIndex === startIndex) {
-        // Hovering at original position - no items should move
-        shouldMove = false
-        moveDistance = 0
-      }
-
-      // Only log spacing changes - this shows which slots are opening
-      if (shouldMove) {
-        console.log(`[Card ${index}] 📍 SPACING: MOVE ${moveDistance}px (hover:${hoverIndex}, start:${startIndex})`)
-      } else if (hoverIndex === startIndex) {
-        console.log(`[Card ${index}] 📍 SPACING: RESET - back to original position`)
-      }
-
-      spacingOffset.value = withSpring(shouldMove ? moveDistance : 0, {
-        damping: shouldMove ? 25 : 35, // Faster return to normal
-        stiffness: shouldMove ? 400 : 600,
-      })
-    } else {
-      // No drag happening, reset quickly
-      spacingOffset.value = withSpring(0, {
-        damping: 35,
-        stiffness: 600,
-      })
-    }
-  }, [draggedOverIndex, originalDragIndex, index, isDragging, estimatedItemHeight, spacing.sm])
 
   // Debug transparency issues - only log when values are unexpected
   React.useEffect(() => {
@@ -313,7 +253,7 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
 
     return {
       transform: [
-        { translateY: translateY.value + spacingOffset.value }, // This makes other elements move!
+        { translateY: translateY.value }, // This makes other elements move!
         { scale: scale.value },
         { rotate: `${rotation}deg` },
       ],
