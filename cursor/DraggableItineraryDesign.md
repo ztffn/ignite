@@ -43,11 +43,11 @@
 - [x] Add proper TypeScript interfaces
 - [x] Integrate with Ignite theme system
 
-### **Phase 2: Drag & Drop Foundation**
-- [ ] Install `react-native-reanimated` (if not already present)
-- [ ] Create `DraggableActivityCard` component
-- [ ] Implement drag gesture handlers
-- [ ] Add visual feedback during drag
+### **Phase 2: Drag & Drop Foundation** ✅ *COMPLETED*
+- [x] Install `react-native-reanimated` (if not already present)
+- [x] Create `DraggableActivityCard` component
+- [x] Implement drag gesture handlers
+- [x] Add visual feedback during drag
 
 ### **Phase 3: Reordering Logic**
 - [ ] Implement `onDragEnd` handler

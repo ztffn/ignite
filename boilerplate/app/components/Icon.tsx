@@ -15,6 +15,8 @@ export const iconRegistry = {
   bell: "notifications",
   caretLeft: "chevron-back",
   caretRight: "chevron-forward",
+  caretUp: "chevron-up",
+  caretDown: "chevron-down",
   check: "checkmark",
   clap: "hand-left",
   community: "people",
@@ -38,6 +40,26 @@ export const iconRegistry = {
   calendar: "calendar",
   mapPin: "location",
   compass: "compass",
+  // Activity type icons
+  hotel: "bed",
+  restaurant: "restaurant",
+  nature: "leaf",
+  social: "people",
+  museum: "school",
+  culture: "library",
+  entertainment: "musical-notes",
+  coffee: "cafe",
+  medical: "medkit",
+  shopping: "cart",
+  note: "document-text",
+  document: "document-text",
+  // Transport mode icons
+  walk: "walk",
+  metro: "subway",
+  bus: "bus",
+  car: "car",
+  train: "train",
+  time: "time",
 }
 
 interface IconProps extends TouchableOpacityProps {

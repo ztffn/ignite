@@ -1,12 +1,14 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ScrollView, Dimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { Screen } from '../../components/Screen'
 import { Card } from '../../components/Card'
 import { Icon } from '../../components/Icon'
+import { DraggableActivityCard } from '../../components/DraggableActivityCard'
+import { TravelRouteChunk } from '../../components/TravelRouteChunk'
 import { useAppTheme } from '../../theme/context'
 import { useSafeAreaInsetsStyle } from '../../utils/useSafeAreaInsetsStyle'
-import { useTripStore } from '../../store/TripStore'
+import { useTripStore } from '../../store/RootStore'
 
 interface Activity {
   id: string
@@ -26,6 +28,13 @@ interface Activity {
   backgroundImage?: string
 }
 
+interface RouteStep {
+  id: string
+  mode: 'walk' | 'metro' | 'bus' | 'car'
+  description: string
+  duration: string
+}
+
 interface TravelRoute {
   id: string
   fromActivityId: string
@@ -34,6 +43,7 @@ interface TravelRoute {
   totalTime: string
   totalDistance: string
   totalCost?: string
+  steps: RouteStep[]
   offline?: boolean
 }
 
@@ -100,6 +110,42 @@ const mockItinerary: Day[] = [
         description: 'Amsterdam\'s most popular park - perfect for a relaxing walk and people watching.',
         rating: 4.4,
         price: 'Free'
+      },
+      { 
+        id: 'a5', 
+        time: '16:00', 
+        title: 'Travel Buddy Meetup', 
+        type: 'social', 
+        location: 'Café Central',
+        tags: ['Social', 'Meeting', 'Friends'],
+        emoji: '👥',
+        description: 'Connect with fellow travelers and locals at this weekly social meetup.',
+        rating: 4.2,
+        price: 'Free'
+      },
+      { 
+        id: 'a6', 
+        time: '17:30', 
+        title: 'Travel Notes Review', 
+        type: 'note', 
+        location: 'Hotel Room',
+        tags: ['Planning', 'Notes'],
+        emoji: '📝',
+        description: 'Review today\'s experiences and plan tomorrow\'s activities.',
+        rating: 0,
+        price: 'Free'
+      },
+      { 
+        id: 'a7', 
+        time: '19:00', 
+        title: 'Restaurant Greetje', 
+        type: 'restaurant', 
+        location: 'Peperstraat 23',
+        tags: ['Fine Dining', 'Modern Dutch'],
+        emoji: '🍽️',
+        description: 'Innovative restaurant serving modern interpretations of traditional Dutch cuisine.',
+        rating: 4.6,
+        price: '€€€€'
       }
     ],
     routes: [
@@ -109,7 +155,12 @@ const mockItinerary: Day[] = [
         toActivityId: 'a2',
         defaultMode: 'walk',
         totalTime: '12 min',
-        totalDistance: '850m'
+        totalDistance: '850m',
+        steps: [
+          { id: 'r1-1s1', mode: 'walk', description: 'Walk south on Prinsengracht', duration: '5 min' },
+          { id: 'r1-1s2', mode: 'walk', description: 'Turn right on Leliegracht', duration: '3 min' },
+          { id: 'r1-1s3', mode: 'walk', description: 'Continue to Nieuwe Leliestraat', duration: '4 min' }
+        ]
       },
       {
         id: 'r1-2',
@@ -118,7 +169,59 @@ const mockItinerary: Day[] = [
         defaultMode: 'metro',
         totalTime: '15 min',
         totalDistance: '2.3km',
-        totalCost: '€3.20'
+        totalCost: '€3.20',
+        steps: [
+          { id: 'r1-2s1', mode: 'walk', description: 'Walk to Nieuwmarkt Metro Station', duration: '4 min' },
+          { id: 'r1-2s2', mode: 'metro', description: 'Metro 51, 53, 54 to Centraal Station', duration: '8 min' },
+          { id: 'r1-2s3', mode: 'walk', description: 'Walk to canal cruise departure point', duration: '3 min' }
+        ]
+      },
+      {
+        id: 'r1-3',
+        fromActivityId: 'a3',
+        toActivityId: 'a4',
+        defaultMode: 'walk',
+        totalTime: '5 min',
+        totalDistance: '400m',
+        steps: [
+          { id: 'r1-3s1', mode: 'walk', description: 'Walk into Jordaan district', duration: '5 min' }
+        ]
+      },
+      {
+        id: 'r1-4',
+        fromActivityId: 'a4',
+        toActivityId: 'a5',
+        defaultMode: 'bus',
+        totalTime: '18 min',
+        totalDistance: '3.1km',
+        totalCost: '€3.20',
+        steps: [
+          { id: 'r1-4s1', mode: 'walk', description: 'Walk to Marnixstraat bus stop', duration: '3 min' },
+          { id: 'r1-4s2', mode: 'bus', description: 'Bus 18 towards Centrum', duration: '12 min' },
+          { id: 'r1-4s3', mode: 'walk', description: 'Walk to Peperstraat', duration: '3 min' }
+        ]
+      },
+      {
+        id: 'r1-5',
+        fromActivityId: 'a5',
+        toActivityId: 'a6',
+        defaultMode: 'walk',
+        totalTime: '6 min',
+        totalDistance: '450m',
+        steps: [
+          { id: 'r1-5s1', mode: 'walk', description: 'Walk back to hotel area', duration: '6 min' }
+        ]
+      },
+      {
+        id: 'r1-6',
+        fromActivityId: 'a6',
+        toActivityId: 'a7',
+        defaultMode: 'walk',
+        totalTime: '10 min',
+        totalDistance: '700m',
+        steps: [
+          { id: 'r1-6s1', mode: 'walk', description: 'Walk to Restaurant Greetje', duration: '10 min' }
+        ]
       }
     ]
   }
@@ -126,11 +229,32 @@ const mockItinerary: Day[] = [
 
 export const ItineraryScreen = ({ navigation }: any) => {
   const { selectedTrip } = useTripStore()
-  const { colors, spacing } = useAppTheme()
+  const { theme } = useAppTheme()
+  const { colors, spacing } = theme
   const topContainerInsets = useSafeAreaInsetsStyle(['top'])
   const [selectedDay, setSelectedDay] = useState('1')
   const [layoutDensity, setLayoutDensity] = useState<'condensed' | 'normal' | 'expanded'>('normal')
   const [expandedRoutes, setExpandedRoutes] = useState<Set<string>>(new Set())
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
+  const [draggedOverIndex, setDraggedOverIndex] = useState<number | null>(null)
+  const [originalDragIndex, setOriginalDragIndex] = useState<number | null>(null)
+  const [itineraryData, setItineraryData] = useState<Day[]>(mockItinerary)
+  const debugShowPlainRows = false
+
+  // Ensure selectedDay always matches available data
+  useEffect(() => {
+    if (itineraryData.length > 0) {
+      setSelectedDay(itineraryData[0].id)
+      const first = itineraryData[0]
+      console.log('[Itinerary] init selectedDay', first.id, 'activities:', first.activities.length)
+    }
+  }, [itineraryData])
+
+  // Log when selectedDay changes and what we are rendering
+  useEffect(() => {
+    const day = itineraryData.find((d) => d.id === selectedDay)
+    console.log('[Itinerary] selectedDay change →', selectedDay, 'day exists?', !!day, 'count:', day?.activities.length)
+  }, [selectedDay, itineraryData])
 
   const toggleRoute = useCallback((routeId: string) => {
     setExpandedRoutes(prev => {
@@ -148,149 +272,120 @@ export const ItineraryScreen = ({ navigation }: any) => {
     return day.routes.find(route => route.fromActivityId === activityId)
   }, [])
 
-  const renderActivityCard = useCallback(({ item: activity, index }: { item: Activity; index: number }) => {
-    const day = mockItinerary.find(d => d.activities.some(a => a.id === activity.id))
-    if (!day) return null
+  // Drag and drop handlers
+  const handleDragStart = useCallback((index: number) => {
+    console.log('[Itinerary] drag start', index)
+    setDraggingIndex(index)
+    setOriginalDragIndex(index)
+    setDraggedOverIndex(null)
+  }, [])
 
-    const route = getRouteForActivity(day, activity.id)
-    const isLastActivity = index === day.activities.length - 1
+  const handleDragUpdate = useCallback((dragIndex: number, hoverIndex: number) => {
+    // Only update if the hover position actually changed and we're actively dragging
+    if (hoverIndex !== draggedOverIndex && draggingIndex !== null) {
+      console.log('[Itinerary] drag update over', hoverIndex, 'from', dragIndex)
+      setDraggedOverIndex(hoverIndex)
+    }
+  }, [draggedOverIndex, draggingIndex])
+
+  const handleDragEnd = useCallback((fromIndex: number, toIndex: number) => {
+    console.log('[Itinerary] drag end', fromIndex, '->', toIndex)
+    
+    // Reset drag states immediately to stop animations
+    setDraggingIndex(null)
+    setDraggedOverIndex(null)
+    setOriginalDragIndex(null)
+    
+    if (fromIndex === toIndex) {
+      return
+    }
+
+    setItineraryData(prevData => {
+      const newData = [...prevData]
+      const currentDay = newData.find(d => d.id === selectedDay)
+      
+      if (currentDay) {
+        const newActivities = [...currentDay.activities]
+        const [movedActivity] = newActivities.splice(fromIndex, 1)
+        newActivities.splice(toIndex, 0, movedActivity)
+        
+        console.log('[Itinerary] Reordered:', newActivities.map(a => `${a.time} ${a.title}`))
+        
+        // Update routes to match new order
+        const newRoutes = recalculateRoutes(newActivities)
+        
+        currentDay.activities = newActivities
+        currentDay.routes = newRoutes
+      }
+      
+      return newData
+    })
+  }, [selectedDay])
+
+  // Recalculate routes between activities after reordering
+  const recalculateRoutes = useCallback((activities: Activity[]): TravelRoute[] => {
+    const newRoutes: TravelRoute[] = []
+    
+    for (let i = 0; i < activities.length - 1; i++) {
+      const fromActivity = activities[i]
+      const toActivity = activities[i + 1]
+      
+      // Create a simple route (in real app, this would call a routing API)
+      const route: TravelRoute = {
+        id: `r-${fromActivity.id}-${toActivity.id}`,
+        fromActivityId: fromActivity.id,
+        toActivityId: toActivity.id,
+        defaultMode: 'walk',
+        totalTime: '10 min',
+        totalDistance: '500m',
+        steps: [
+          {
+            id: `step-${fromActivity.id}-${toActivity.id}`,
+            mode: 'walk',
+            description: `Walk from ${fromActivity.title} to ${toActivity.title}`,
+            duration: '10 min'
+          }
+        ]
+      }
+      
+      newRoutes.push(route)
+    }
+    
+    return newRoutes
+  }, [])
+
+  // Render item for FlashList
+  const renderItem = useCallback(({ item, index }: { item: Activity; index: number }) => {
+    const currentDay = itineraryData.find(d => d.id === selectedDay)
+    if (!currentDay) return null
+
+    const route = getRouteForActivity(currentDay, item.id)
+    const isLastActivity = index === currentDay.activities.length - 1
 
     return (
-      <View key={activity.id}>
-        {/* Activity Card */}
-        <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm }}>
-          <View style={{ padding: spacing.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.sm }}>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text }}>
-                    {activity.time}
-                  </Text>
-                  <Text style={{ fontSize: 20, marginLeft: spacing.xs }}>
-                    {activity.emoji}
-                  </Text>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginLeft: spacing.xs }}>
-                    {activity.title}
-                  </Text>
-                </View>
-                
-                {activity.location && (
-                  <Text style={{ fontSize: 14, color: colors.textDim, marginBottom: spacing.xs }}>
-                    📍 {activity.location}
-                  </Text>
-                )}
-                
-                {activity.description && (
-                  <Text style={{ fontSize: 14, color: colors.text, marginBottom: spacing.xs }}>
-                    {activity.description}
-                  </Text>
-                )}
-                
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                  {activity.rating && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Icon icon="heart" size={14} color={colors.tint} />
-                      <Text style={{ fontSize: 12, color: colors.textDim, marginLeft: 4 }}>
-                        {activity.rating}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {activity.price && (
-                    <Text style={{ fontSize: 12, color: colors.textDim }}>
-                      💰 {activity.price}
-                    </Text>
-                  )}
-                </View>
-                
-                {activity.tags && (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.xs }}>
-                    {activity.tags.map((tag, tagIndex) => (
-                      <View
-                        key={tagIndex}
-                        style={{
-                          backgroundColor: colors.border,
-                          paddingHorizontal: spacing.xs,
-                          paddingVertical: 2,
-                          borderRadius: 4,
-                          marginRight: spacing.xs,
-                          marginBottom: spacing.xs
-                        }}
-                      >
-                        <Text style={{ fontSize: 10, color: colors.textDim }}>
-                          {tag}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-              
-              <TouchableOpacity style={{ padding: spacing.xs }}>
-                <Icon icon="more" size={16} color={colors.textDim} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Card>
-        
-        {/* Travel Route (if not last activity) */}
+      <View key={item.id}>
+        <DraggableActivityCard
+          activity={item}
+          index={index}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          isDragging={draggingIndex === index}
+          listLength={currentDay.activities.length}
+          estimatedItemHeight={112}
+          onPress={() => {}}
+        />
         {!isLastActivity && route && layoutDensity !== 'condensed' && (
-          <View style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm }}>
-            <TouchableOpacity
-              onPress={() => toggleRoute(route.id)}
-              style={{
-                backgroundColor: colors.background,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 8,
-                padding: spacing.sm,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <Icon 
-                  icon={route.defaultMode === 'walk' ? 'pin' : 'settings'} 
-                  size={16} 
-                  color={colors.textDim} 
-                />
-                <Text style={{ fontSize: 14, color: colors.textDim, marginLeft: spacing.xs }}>
-                  {route.totalTime} • {route.totalDistance}
-                </Text>
-                {route.totalCost && (
-                  <Text style={{ fontSize: 14, color: colors.textDim, marginLeft: spacing.sm }}>
-                    {route.totalCost}
-                  </Text>
-                )}
-              </View>
-              
-              <Icon 
-                icon={expandedRoutes.has(route.id) ? 'caretUp' : 'caretDown'} 
-                size={16} 
-                color={colors.textDim} 
-              />
-            </TouchableOpacity>
-            
-            {expandedRoutes.has(route.id) && (
-              <View style={{ 
-                backgroundColor: colors.background, 
-                marginTop: spacing.xs,
-                padding: spacing.sm,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: colors.border
-              }}>
-                <Text style={{ fontSize: 12, color: colors.textDim }}>
-                  Route details would go here...
-                </Text>
-              </View>
-            )}
-          </View>
+          <TravelRouteChunk
+            route={route}
+            fromPlace={item.title}
+            toPlace={currentDay.activities[index + 1]?.title || 'Next stop'}
+            expanded={expandedRoutes.has(route.id)}
+            onToggle={() => toggleRoute(route.id)}
+          />
         )}
       </View>
     )
-  }, [colors, spacing, layoutDensity, expandedRoutes, toggleRoute, getRouteForActivity])
+  }, [itineraryData, selectedDay, layoutDensity, expandedRoutes, draggingIndex, handleDragStart, handleDragEnd, getRouteForActivity, toggleRoute])
 
   if (!selectedTrip) {
     return (
@@ -318,11 +413,11 @@ export const ItineraryScreen = ({ navigation }: any) => {
     )
   }
 
-  const currentDay = mockItinerary.find(d => d.id === selectedDay)
+  const currentDay = itineraryData.find(d => d.id === selectedDay)
   if (!currentDay) return null
 
   return (
-    <Screen preset="fixed" style={{ backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View style={[topContainerInsets, { backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.border }]}>
         <View style={{ padding: spacing.md }}>
@@ -344,52 +439,72 @@ export const ItineraryScreen = ({ navigation }: any) => {
               <Icon icon="settings" size={20} color={colors.text} />
             </TouchableOpacity>
           </View>
-          
-          {/* Day Navigation Chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ flexDirection: 'row', gap: spacing.xs }}>
-              {mockItinerary.map((day, index) => (
-                <TouchableOpacity
-                  key={day.id}
-                  onPress={() => setSelectedDay(day.id)}
-                  style={{
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: spacing.xs,
-                    borderRadius: 8,
-                    backgroundColor: selectedDay === day.id ? colors.tint : colors.border,
-                  }}
-                >
-                  <Text style={{ 
-                    fontSize: 12, 
-                    fontWeight: '600', 
-                    color: selectedDay === day.id ? '#ffffff' : colors.text 
-                  }}>
-                    Day {index + 1}
-                  </Text>
-                  <Text style={{ 
-                    fontSize: 10, 
-                    color: selectedDay === day.id ? '#ffffff' : colors.textDim,
-                    textAlign: 'center'
-                  }}>
-                    {day.city}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+        </View>
+      </View>
+
+      {/* Day header */}
+      <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View>
+            <Text style={{ fontSize: 24, fontWeight: '700', color: colors.text }}>Monday <Text style={{ color: colors.textDim }}>Dec 9</Text></Text>
+            <Text style={{ color: colors.textDim, marginTop: 6 }}>{currentDay.city}</Text>
+          </View>
+          <TouchableOpacity>
+            <Text style={{ color: colors.tint, fontSize: 16 }}>+ Add</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* Content */}
       <View style={{ flex: 1 }}>
-        <FlashList
-          data={currentDay.activities}
-          renderItem={renderActivityCard}
-          estimatedItemSize={120}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xl }}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingVertical: spacing.md }}
-        />
+          scrollEnabled={true}
+        >
+          {currentDay.activities.map((item, index) => {
+            console.log('[Itinerary] render item', index, item.id, item.title)
+            const route = getRouteForActivity(currentDay, item.id)
+            const isLastActivity = index === currentDay.activities.length - 1
+            return (
+              <View key={item.id}>
+                {debugShowPlainRows ? (
+                  <View style={{
+                    borderWidth: 2,
+                    borderColor: 'red',
+                    backgroundColor: 'white',
+                    padding: spacing.md,
+                    borderRadius: 8,
+                    height: 80,
+                  }}>
+                    <Text style={{ color: 'black', fontWeight: '600', fontSize: 16 }}>{item.time} - {item.title}</Text>
+                    {item.location ? (
+                      <Text style={{ color: 'gray', marginTop: 4 }}>{item.location}</Text>
+                    ) : null}
+                  </View>
+                ) : (
+                  <DraggableActivityCard
+                    activity={item}
+                    index={index}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragUpdate={handleDragUpdate}
+                    isDragging={draggingIndex === index}
+                    draggedOverIndex={draggedOverIndex}
+                    originalDragIndex={originalDragIndex}
+                    listLength={currentDay.activities.length}
+                    estimatedItemHeight={112}
+                    nextRoute={route}
+                    isLastActivity={isLastActivity}
+                    onPress={() => {}}
+                  />
+                )}
+              </View>
+            )
+          })}
+        </ScrollView>
       </View>
-    </Screen>
+    </View>
   )
 }
