@@ -1,5 +1,5 @@
 import React, { useCallback } from "react"
-import { View, Text, TouchableOpacity, Dimensions } from "react-native"
+import { View, TouchableOpacity } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   useSharedValue,
@@ -10,12 +10,58 @@ import Animated, {
   Extrapolate,
 } from "react-native-reanimated"
 
-import { Card } from "./Card"
 import { Icon } from "./Icon"
+import { Text } from "./Text"
 import { useAppTheme } from "../theme/context"
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window")
 const DRAG_THRESHOLD = 50
+
+// Enhanced drag handle with better visual feedback
+const DragHandle: React.FC<{ isActive: boolean; color: string }> = ({ isActive, color }) => {
+  const handleContainerStyle = {
+    width: 28, // Slightly larger for better touch target
+    height: 36,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    borderRadius: 8,
+    backgroundColor: isActive ? `${color}10` : "transparent", // Subtle background when active
+    borderWidth: isActive ? 1 : 0,
+    borderColor: isActive ? `${color}30` : "transparent",
+  }
+
+  const dotsContainerStyle = {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    width: 18,
+    height: 22,
+  }
+
+  const dotStyle = (marginRight?: number, marginBottom?: number) => ({
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: color,
+    marginRight: marginRight || 0,
+    marginBottom: marginBottom || 0,
+    opacity: isActive ? 1 : 0.5, // More contrast when active
+  })
+
+  return (
+    <View style={handleContainerStyle}>
+      <View style={dotsContainerStyle}>
+        {/* Top row */}
+        <View style={dotStyle(4, 4)} />
+        <View style={dotStyle(0, 4)} />
+        {/* Middle row */}
+        <View style={dotStyle(4, 4)} />
+        <View style={dotStyle(0, 4)} />
+        {/* Bottom row */}
+        <View style={dotStyle(4, 0)} />
+        <View style={dotStyle(0, 0)} />
+      </View>
+    </View>
+  )
+}
 
 interface Activity {
   id: string
@@ -101,19 +147,35 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
   const spacingOffset = useSharedValue(0)
   const hasDragged = useSharedValue(false)
 
-  // Pan is manual; it activates only after long press succeeds
+  // Pan gesture - only activates after long press succeeds
   const pan = Gesture.Pan()
     .manualActivation(true)
     .onTouchesMove((_, state) => {
-      if (isLongPressed.value) state.activate()
+      if (isLongPressed.value && isDragging) {
+        console.log(`[Card ${index}] Activating pan gesture - long press active and parent says dragging`)
+        state.activate()
+      }
     })
     .onUpdate((event) => {
-      if (!isLongPressed.value) return
+      if (!isLongPressed.value || !isDragging) {
+        console.log(`[Card ${index}] Pan update blocked:`, {
+          isLongPressed: isLongPressed.value,
+          isDragging,
+          translationY: event.translationY,
+        })
+        return // Only process if long-pressed AND dragging
+      }
+
+      console.log(`[Card ${index}] Pan update:`, {
+        translationY: event.translationY,
+        hasDragged: hasDragged.value,
+      })
 
       translateY.value = event.translationY
 
       if (!hasDragged.value && Math.abs(event.translationY) > 1) {
         hasDragged.value = true
+        console.log(`[Card ${index}] Marked as dragged`)
       }
 
       const dragDistance = event.translationY
@@ -122,18 +184,31 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
       const hoverIndex = Math.max(0, Math.min(index + delta, listLength - 1))
 
       if (onDragUpdate && hoverIndex !== index) {
+        console.log(`[Card ${index}] Calling onDragUpdate:`, { from: index, to: hoverIndex })
         runOnJS(onDragUpdate)(index, hoverIndex)
       }
 
-      opacity.value = interpolate(
+      // Add subtle rotation for "picked up" feel
+      const rotation = interpolate(
         Math.abs(event.translationY),
         [0, DRAG_THRESHOLD],
-        [1, 0.9],
+        [0, 2],
         Extrapolate.CLAMP,
       )
+      // Note: We'll need to add rotation to the animated style
     })
     .onEnd((event) => {
-      if (!isLongPressed.value) return
+      console.log(`[Card ${index}] Pan end:`, {
+        isLongPressed: isLongPressed.value,
+        isDragging,
+        translationY: event.translationY,
+        hasDragged: hasDragged.value,
+      })
+      
+      if (!isLongPressed.value || !isDragging) {
+        console.log(`[Card ${index}] Pan end blocked - not in valid drag state`)
+        return
+      }
 
       const itemHeight = estimatedItemHeight + spacing.sm
       const dragDistance = event.translationY
@@ -141,82 +216,86 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
       const unclamped = index + delta
       const newIndex = Math.max(0, Math.min(unclamped, Math.max(0, listLength - 1)))
 
-      runOnJS(onDragEnd)(index, newIndex)
-
-      translateY.value = withSpring(0, {
-        damping: 30,
-        stiffness: 500,
+      console.log(`[Card ${index}] Drag end calculation:`, {
+        dragDistance,
+        delta,
+        unclamped,
+        newIndex,
+        itemHeight,
       })
 
-      isLongPressed.value = false
-      hasDragged.value = false
-      scale.value = withSpring(1, { damping: 25, stiffness: 400 })
-      opacity.value = withSpring(1, { damping: 25, stiffness: 400 })
-      shadowOpacity.value = withSpring(0.1, { damping: 25, stiffness: 400 })
-    })
-    .onFinalize(() => {
-      // Safety reset in case of interruption
-      if (isLongPressed.value) {
-        isLongPressed.value = false
-        hasDragged.value = false
-        translateY.value = withSpring(0)
-        scale.value = withSpring(1)
-        opacity.value = withSpring(1)
-        shadowOpacity.value = withSpring(0.1)
-      }
+      runOnJS(onDragEnd)(index, newIndex)
+
+      // Don't reset state here - let the parent's isDragging change trigger the cleanup effect
+      console.log(`[Card ${index}] Drag end complete - waiting for parent state change`)
     })
     .shouldCancelWhenOutside(false)
 
   // Long press arms the drag and disables list scroll via parent onDragStart
   const longPress = Gesture.LongPress()
     .minDuration(500)
-    .maxDistance(10)
+    .maxDistance(5)
     .onStart(() => {
+      console.log(`[Card ${index}] Long press started`)
       isLongPressed.value = true
-      scale.value = withSpring(1.05)
-      shadowOpacity.value = withSpring(0.4)
+      
+      // Enhanced lift effect - more pronounced than before
+      scale.value = withSpring(1.08, { 
+        damping: 20, 
+        stiffness: 300,
+        mass: 0.8,
+      })
+      
+      shadowOpacity.value = withSpring(0.6, { 
+        damping: 20, 
+        stiffness: 300 
+      })
+      
+      console.log(`[Card ${index}] Calling onDragStart`)
       runOnJS(onDragStart)(index)
-    })
-    .onFinalize(() => {
-      // If long-press ended without pan dragging, reset and inform parent
-      if (isLongPressed.value && !hasDragged.value) {
-        isLongPressed.value = false
-        translateY.value = withSpring(0)
-        scale.value = withSpring(1)
-        opacity.value = withSpring(1)
-        shadowOpacity.value = withSpring(0.1)
-        runOnJS(onDragEnd)(index, index)
-      }
     })
     .shouldCancelWhenOutside(false)
 
-  // Tap gesture for normal press
-  const tap = Gesture.Tap().onEnd(() => {
-    if (!isLongPressed.value && onPress) runOnJS(onPress)()
-  })
-
-  // Compose: let native scroll win if movement starts; otherwise allow tap or long-press→pan
-  const finalGesture = Gesture.Race(
-    Gesture.Native(),
-    Gesture.Exclusive(tap, Gesture.Simultaneous(longPress, pan)),
-  )
+  // Handle gesture: long-press arms the drag, then pan handles movement
+  const handleGesture = Gesture.Simultaneous(longPress, pan)
 
   // Cleanup effect to ensure no stuck states
   React.useEffect(() => {
-    if (!isDragging && draggedOverIndex === null && originalDragIndex === null) {
-      // Force reset all values when not dragging
+    console.log(`[Card ${index}] Cleanup effect:`, {
+      isDragging,
+      isLongPressed: isLongPressed.value,
+      hasDragged: hasDragged.value,
+      translateY: translateY.value,
+      scale: scale.value,
+      opacity: opacity.value,
+    })
+    
+    // If parent says we're not dragging, immediately reset everything
+    if (!isDragging) {
+      console.log(`[Card ${index}] Parent says not dragging - resetting all values`)
+      isLongPressed.value = false
+      hasDragged.value = false
       translateY.value = 0
       spacingOffset.value = 0
       scale.value = 1
       opacity.value = 1
       shadowOpacity.value = 0.1
-      isLongPressed.value = false
     }
-  }, [isDragging, draggedOverIndex, originalDragIndex])
+  }, [isDragging]) // Only depend on parent's isDragging state
 
   // React to draggedOverIndex changes to create proper swap animations
   React.useEffect(() => {
-    if (isDragging) {
+    console.log(`[Card ${index}] Spacing effect:`, {
+      isDragging,
+      isLongPressed: isLongPressed.value,
+      draggedOverIndex,
+      originalDragIndex,
+      myIndex: index,
+      spacingOffset: spacingOffset.value,
+    })
+    
+    if (isDragging && isLongPressed.value) {
+      console.log(`[Card ${index}] This is the dragging item - no spacing offset`)
       // If this is the dragging item, don't apply spacing offset
       spacingOffset.value = withSpring(0)
     } else if (typeof draggedOverIndex === "number" && typeof originalDragIndex === "number") {
@@ -242,11 +321,20 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
         }
       }
 
+      console.log(`[Card ${index}] Spacing calculation:`, {
+        hoverIndex,
+        startIndex,
+        myIndex,
+        shouldMove,
+        moveDistance,
+      })
+
       spacingOffset.value = withSpring(shouldMove ? moveDistance : 0, {
         damping: shouldMove ? 25 : 35, // Faster return to normal
         stiffness: shouldMove ? 400 : 600,
       })
     } else {
+      console.log(`[Card ${index}] No drag happening - resetting spacing`)
       // No drag happening, reset quickly
       spacingOffset.value = withSpring(0, {
         damping: 35,
@@ -256,11 +344,37 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
   }, [draggedOverIndex, originalDragIndex, index, isDragging, estimatedItemHeight, spacing.sm])
 
   // Animated styles
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value + spacingOffset.value }, { scale: scale.value }],
-    opacity: opacity.value,
-    zIndex: isLongPressed.value || isDragging ? 1000 : 1,
-  }))
+  const animatedStyle = useAnimatedStyle(() => {
+    const rotation = interpolate(
+      Math.abs(translateY.value),
+      [0, DRAG_THRESHOLD],
+      [0, 2],
+      Extrapolate.CLAMP,
+    )
+
+    // Debug logging for transform values
+    if (isLongPressed.value || isDragging) {
+      console.log(`[Card ${index}] Animated style update:`, {
+        translateY: translateY.value,
+        spacingOffset: spacingOffset.value,
+        totalTranslateY: translateY.value + spacingOffset.value,
+        scale: scale.value,
+        rotation,
+        isLongPressed: isLongPressed.value,
+        isDragging,
+      })
+    }
+
+    return {
+      transform: [
+        { translateY: translateY.value + spacingOffset.value }, // This makes other elements move!
+        { scale: scale.value },
+        { rotate: `${rotation}deg` },
+      ],
+      // opacity: opacity.value, // Removed to keep card fully opaque
+      zIndex: isLongPressed.value || isDragging ? 1000 : 1,
+    }
+  })
 
   const shadowStyle = useAnimatedStyle(() => ({
     shadowOpacity: shadowOpacity.value,
@@ -280,8 +394,8 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
   }, [onPress, activity.title])
 
   return (
-    <Animated.View style={[animatedStyle, shadowStyle, { marginBottom: spacing.sm }]}>
-      <GestureDetector gesture={finalGesture}>
+    <Animated.View style={[animatedStyle, shadowStyle, { marginBottom: spacing.sm }]}> 
+      <TouchableOpacity activeOpacity={0.8} onPress={handlePress}>
         <Animated.View
           style={{
             backgroundColor: isDragging ? colors.border : colors.background,
@@ -293,7 +407,11 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
         >
           {/* Main content row */}
           <View
-            style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
           >
             <View style={{ flex: 1 }}>
               <Text
@@ -318,49 +436,15 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
               )}
             </View>
 
-            {/* Drag handle - shows state */}
-            <View
-              style={{
-                width: 20,
-                height: 20,
-                justifyContent: "center",
-                alignItems: "center",
-                marginLeft: spacing.sm,
-              }}
-            >
-              {isDragging ? (
-                <Text style={{ fontSize: 16 }}>✋</Text>
-              ) : (
-                <>
-                  <View
-                    style={{
-                      width: 3,
-                      height: 3,
-                      backgroundColor: colors.textDim,
-                      borderRadius: 2,
-                      marginBottom: 3,
-                    }}
-                  />
-                  <View
-                    style={{
-                      width: 3,
-                      height: 3,
-                      backgroundColor: colors.textDim,
-                      borderRadius: 2,
-                      marginBottom: 3,
-                    }}
-                  />
-                  <View
-                    style={{
-                      width: 3,
-                      height: 3,
-                      backgroundColor: colors.textDim,
-                      borderRadius: 2,
-                    }}
-                  />
-                </>
-              )}
-            </View>
+            {/* Drag handle - only this triggers long-press */}
+            <GestureDetector gesture={handleGesture}>
+              <View style={{ marginLeft: spacing.sm }}>
+                <DragHandle 
+                  isActive={isLongPressed.value || isDragging} 
+                  color={colors.textDim} 
+                />
+              </View>
+            </GestureDetector>
           </View>
 
           {/* Integrated transport route - attached to bottom of activity */}
@@ -411,8 +495,8 @@ export const DraggableActivityCard: React.FC<DraggableActivityCardProps> = ({
               </View>
             </View>
           )}
-        </Animated.View>
-      </GestureDetector>
-    </Animated.View>
-  )
-}
+          </Animated.View>
+        </TouchableOpacity>
+      </Animated.View>
+    )
+  }
