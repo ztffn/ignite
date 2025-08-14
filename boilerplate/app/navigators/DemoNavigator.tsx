@@ -7,7 +7,7 @@ import { DemoShowroomScreen } from "../screens/DemoShowroomScreen/DemoShowroomSc
 import { DocumentVaultScreen } from "../screens/Hopla/DocumentVaultScreen"
 import { ExploreScreen } from "../screens/Hopla/ExploreScreen"
 import { ItineraryScreen } from "../screens/Hopla/ItineraryScreen"
-import { MapScreen } from "../screens/Hopla/MapScreen"
+import { TaskPlannerItineraryScreen } from "../screens/Hopla/TaskPlannerItineraryScreen"
 import { useAppTheme } from "../theme/context"
 
 export type DemoTabParamList = {
@@ -70,10 +70,10 @@ export function DemoNavigator() {
       />
       <Tab.Screen
         name="DemoPodcastList"
-        component={MapScreen}
+        component={TaskPlannerItineraryScreen}
         options={{
-          tabBarAccessibilityLabel: "Map",
-          tabBarLabel: "Map",
+          tabBarAccessibilityLabel: "Planner",
+          tabBarLabel: "Planner",
           tabBarIcon: ({ focused }: { focused: boolean }) => (
             <Icon icon="mapPin" color={focused ? colors.tint : colors.tintInactive} size={20} />
           ),

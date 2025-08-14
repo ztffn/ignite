@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { LandingScreen, TripsScreen, ItineraryScreen, MapScreen, DocumentVaultScreen } from '../screens/Hopla';
+import { LandingScreen, TripsScreen, ItineraryScreen, TaskPlannerItineraryScreen, MapScreen, DocumentVaultScreen } from '../screens/Hopla';
 
 const Tab = createBottomTabNavigator();
 
@@ -46,7 +46,7 @@ export const HoplaNavigator = () => {
       />
       <Tab.Screen 
         name="Map" 
-        component={MapScreen}
+        component={TaskPlannerItineraryScreen}
         options={{
           title: 'Map',
           tabBarIcon: ({ color, size }) => (

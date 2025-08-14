@@ -47,6 +47,9 @@
   ],
   "exclude": [
     "node_modules",
-    "test/**/*"
+    "test/**/*",
+    "vendor/react-native-sortables-demos/app/**/*",
+    "vendor/react-native-sortables-demos/examples/**/*",
+    "vendor/react-native-sortables-demos/theme/**/*"
   ]
 }

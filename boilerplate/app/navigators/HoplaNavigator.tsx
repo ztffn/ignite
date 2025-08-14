@@ -5,6 +5,7 @@ import {
   LandingScreen,
   TripsScreen,
   ItineraryScreen,
+  TaskPlannerItineraryScreen,
   MapScreen,
   DocumentVaultScreen,
 } from "../screens/Hopla"
@@ -42,7 +43,7 @@ export const HoplaNavigator = () => {
       />
       <Tab.Screen
         name="Itinerary"
-        component={ItineraryScreen}
+        component={TaskPlannerItineraryScreen}
         options={{
           title: "Plan",
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
