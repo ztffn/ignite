@@ -111,13 +111,13 @@ export default function TaskPlanner() {
       const separatorIndex = keyToIndex[SEPARATOR];
       // If the active item becomes selected
       if (toIndex === separatorIndex) {
-        // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        // haptics
       }
       // If the active item is deselected
       else if (fromIndex === separatorIndex) {
-        // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        // haptics
       } else {
-        // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        // haptics
       }
     },
     [totalDurations]
@@ -168,7 +168,7 @@ export default function TaskPlanner() {
         onOrderChange={handleOrderChange}
         onDragEnd={({ data: newData }) => {
           setData(newData);
-          // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          // haptics
         }}
         onDragStart={() => {}}
       />

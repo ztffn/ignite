@@ -1,3 +1,46 @@
+\n### Itinerary v2 (Task Planner baseline) — implementation plan
+
+Scope
+- Build a new itinerary (v2) on top of Sortables Task Planner architecture (per-day zones).
+- Keep one theme (Ignite). Add wrappers for haptics and animated text.
+
+Architecture
+- MultiZone: `Sortable.PortalProvider` → `Sortable.Layer` → `Sortable.MultiZoneProvider`
+- Per-day zone: `Sortable.BaseZone` (one per day)
+- Items list: `Sortable.Grid` with `customHandle`, `autoScrollEnabled`, `scrollableRef`, `dragActivationDelay`
+
+Wrappers (new)
+- `app/utils/haptics.ts`: impactHeavy/Medium/Light → uses `expo-haptics` if installed; no-op otherwise
+- `app/components/AnimatedText.tsx`: Reanimated-based text; props: `text` (string/shared value), `style`
+
+Refactors (example → Ignite)
+- Replace demo aliases (`@/theme`, `@/components/AnimatedText`) with Ignite `useAppTheme()` and `spacing`
+- Remove demo tokens (primary/foreground2/etc.); use `colors.text`, `colors.background`
+- Replace `flex`, `iconSizes` with plain RN styles and numeric sizes
+- Remove invalid `textOverflow`; use `overflow: 'hidden'` and `numberOfLines`
+
+TypeScript hygiene
+- Exclude vendor demo app from TS: `vendor/react-native-sortables-demos/{app,examples,theme}/**/*`
+- Keep only `app/screens/TaskPlanner/**` in our build
+
+Behavior to keep/extend
+- Reorder within day; cross-day move (append first, refine index later)
+- Auto-scroll while dragging; layout animations (LinearTransition)
+- Haptics on start/threshold/drop (via wrapper)
+- Per-day start time + per-item duration; recompute start times on reorder/drop
+
+Migration steps
+1) Confirm Planner tab runs clean (TS green)
+2) Add wrappers (haptics, AnimatedText) and swap into TaskPlanner files
+3) Rename columns → days; map to our day model; show day headers
+4) Replace card visuals with our activity card incrementally
+5) Integrate travel chunks (non-draggable) between items
+6) QA: same-day reorder, cross-day move, time recompute, auto-scroll
+
+Risks
+- Mixing old rule logic with new DnD → avoid; keep v2 isolated
+- Over-styling early → defer visuals; focus on behavior first
+
 ### Itinerary drag/drop migration plan (react-native-reorderable-list → react-native-sortables)
 
 Source context: `boilerplate/app/screens/Hopla/ItineraryScreen.tsx`, `cursor/dragdropMigration.md`, `HoplaDocs/Pages/Ititniary/*`
