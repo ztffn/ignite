@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useRef } from "react"
 import { View, Text, TouchableOpacity, Pressable } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import ReorderableList, { useReorderableDrag, ReorderableListReorderEvent } from "react-native-reorderable-list"
+import Sortable from "react-native-sortables"
+import Animated, { useAnimatedRef } from "react-native-reanimated"
 import { useNavigation } from "@react-navigation/native"
 
 import { useAppTheme } from "../../theme/context"
@@ -738,12 +739,11 @@ const DraggableItem: React.FC<{
   spacing: any;
   layoutDensity: LayoutDensity;
 }> = ({ item, colors, spacing, layoutDensity }) => {
-  const drag = useReorderableDrag()
-  
   // Get density-specific styles
   const styles = densityStyles[layoutDensity]
 
   return (
+    <Sortable.Handle>
     <Pressable
       style={{
         backgroundColor: colors.background,
@@ -755,7 +755,6 @@ const DraggableItem: React.FC<{
         padding: styles.padding,
         minHeight: layoutDensity === 'condensed' ? 60 : 80,
       }}
-      onLongPress={drag}
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         {/* Time and Emoji */}
@@ -831,6 +830,7 @@ const DraggableItem: React.FC<{
         )}
       </View>
     </Pressable>
+    </Sortable.Handle>
   )
 }
 
@@ -839,6 +839,7 @@ export const ItineraryScreen = () => {
   const { theme } = useAppTheme()
   const { colors, spacing } = theme
   const topContainerInsets = useSafeAreaInsets()
+  const scrollRef = useAnimatedRef<any>()
   
   // Updated state management with LayoutDensity type system
   const [layoutDensity, setLayoutDensity] = useState<LayoutDensity>('medium')
@@ -847,209 +848,14 @@ export const ItineraryScreen = () => {
   
   // State for the actual itinerary data that can be modified
   const [itineraryData, setItineraryData] = useState<Day[]>(mockItinerary)
+  
+  // Fresh plugin logic: managed per-day zones (no custom flattening)
 
-  const handleReorder = useCallback(({ from, to }: ReorderableListReorderEvent) => {
-    console.log('🔄 Reorder triggered:', { from, to })
-    
-    // Get the flattened data structure from the current state
-    const flattenedData = itineraryData.flatMap((day, dayIndex) => {
-      const dayInfo = getDayInfo(day)
-      const items: Array<{
-        id: string
-        type: 'day-header' | 'activity'
-        day: Day
-        dayIndex: number
-        dayInfo?: { weekday: string; date: string }
-        activity?: Activity
-        activityIndex?: number
-      }> = []
-      
-      // Add day header as a non-draggable item
-      items.push({
-        id: `day-${day.id}`,
-        type: 'day-header',
-        day,
-        dayIndex,
-        dayInfo
-      })
-      
-      // Add activities as draggable items
-      day.activities.forEach((activity, activityIndex) => {
-        items.push({
-          id: `activity-${activity.id}`,
-          type: 'activity',
-          activity,
-          day,
-          dayIndex,
-          activityIndex
-        })
-      })
-      
-      return items
-    })
-    
-    // Rule 1: Position 0 protection - never allow drops above the first day header
-    if (to === 0) {
-      const adjustedTo = 1
-      console.log('🛡️ Position 0 protection: redirecting from', to, 'to', adjustedTo)
-      handleReorderInternal({ from, to: adjustedTo }, flattenedData)
-      return
-    }
-    
-    // Rule 2: Day header handling - dynamic positioning based on context
-    const toItem = flattenedData[to]
-    if (toItem?.type === 'day-header') {
-      const targetPosition = calculateValidPositionForDayHeader(to, flattenedData)
-      if (targetPosition !== null) {
-        console.log('🎯 Day header drop, redirecting to valid position:', targetPosition)
-        handleReorderInternal({ from, to: targetPosition }, flattenedData)
-        return
-      }
-    }
-    
-    // Rule 3: Normal reorder - proceed with the original logic
-    console.log('✅ Normal reorder: proceeding with', { from, to })
-    handleReorderInternal({ from, to }, flattenedData)
-  }, [itineraryData])
+  // Using per-zone onDragEnd for intra-day ordering; cross-day handled in zone onItemDrop
 
-  // Dynamic position calculation for day header drops
-  const calculateValidPositionForDayHeader = useCallback((dayHeaderIndex: number, flattenedData: any[]) => {
-    // Find the previous day's last activity
-    let previousDayLastActivity = null
-    let currentDayIndex = -1
-    
-    // Walk backwards to find the previous day's structure
-    for (let i = dayHeaderIndex - 1; i >= 0; i--) {
-      const item = flattenedData[i]
-      if (item?.type === 'day-header') {
-        // Found the previous day header
-        currentDayIndex = i
-        break
-      }
-      if (item?.type === 'activity' && previousDayLastActivity === null) {
-        // Found the last activity of the previous day
-        previousDayLastActivity = i
-      }
-    }
-    
-    if (previousDayLastActivity !== null) {
-      // Place after the last activity of the previous day
-      return previousDayLastActivity
-    }
-    
-    // Fallback: if no previous activity found, place at the beginning of the current day
-    // Find the first activity after this day header
-    for (let i = dayHeaderIndex + 1; i < flattenedData.length; i++) {
-      if (flattenedData[i]?.type === 'activity') {
-        return i
-      }
-    }
-    
-    // Last resort: place at the very end
-    return flattenedData.length - 1
-  }, [])
+  // Removed rule-based redirect logic to rely solely on plugin ordering
 
-  // Internal handler that processes the actual reordering logic
-  const handleReorderInternal = useCallback(({ from, to }: { from: number; to: number }, flattenedData: any[]) => {
-    console.log('🔧 Internal reorder processing:', { from, to })
-    
-    // Find the source and target items
-    const fromItem = flattenedData[from]
-    const toItem = flattenedData[to]
-    
-    console.log('📍 From item:', fromItem)
-    console.log('📍 To item:', toItem)
-    
-    // Only allow reordering activities, not day headers
-    if (fromItem.type !== 'activity' || toItem.type !== 'activity') {
-      console.log('❌ Cannot reorder day headers')
-      return
-    }
-    
-    // Allow cross-day reordering - remove the same-day restriction
-    const isSameDay = fromItem.dayIndex === toItem.dayIndex
-    console.log('🌍 Reorder type:', isSameDay ? 'Same-day' : 'Cross-day', { 
-      fromDay: fromItem.dayIndex, 
-      toDay: toItem.dayIndex
-    })
-    
-    // Create a deep copy of the itinerary data
-    const newItineraryData = [...itineraryData]
-    
-    if (isSameDay) {
-      // Same-day reorder - simpler logic
-      const day = newItineraryData[fromItem.dayIndex!]
-      const newActivities = [...day.activities]
-      
-      console.log('📋 Same-day - Before:', newActivities.map(a => a.title))
-      
-      // Remove from original position and insert at new position
-      const [movedActivity] = newActivities.splice(fromItem.activityIndex!, 1)
-      newActivities.splice(toItem.activityIndex!, 0, movedActivity)
-      
-      console.log('📋 Same-day - After:', newActivities.map(a => a.title))
-      
-      // Update the day's activities
-      newItineraryData[fromItem.dayIndex!] = {
-        ...day,
-        activities: newActivities
-      }
-    } else {
-      // Cross-day reorder - more complex logic
-      // Remove activity from source day
-      const sourceDay = newItineraryData[fromItem.dayIndex!]
-      const sourceActivities = [...sourceDay.activities]
-      const [movedActivity] = sourceActivities.splice(fromItem.activityIndex!, 1)
-      
-      console.log('📤 Removed from day', fromItem.dayIndex, '-', movedActivity.title)
-      
-      // Update source day
-      newItineraryData[fromItem.dayIndex!] = {
-        ...sourceDay,
-        activities: sourceActivities
-      }
-      
-      // Add activity to target day
-      const targetDay = newItineraryData[toItem.dayIndex!]
-      const targetActivities = [...targetDay.activities]
-      
-      // Calculate the actual position within the target day's activities
-      // Find all activities in the target day that come before the target position
-      let targetDayActivityIndex = 0
-      for (let i = 0; i < to; i++) {
-        const item = flattenedData[i]
-        if (item?.dayIndex === toItem.dayIndex && item?.type === 'activity') {
-          targetDayActivityIndex++
-        }
-      }
-      
-      // If we're dropping at the very end of the target day (after all activities),
-      // place it at the end of the activities array
-      if (targetDayActivityIndex >= targetActivities.length) {
-        targetDayActivityIndex = targetActivities.length
-      }
-      
-      console.log('🎯 Target:', {
-        day: toItem.dayIndex,
-        position: targetDayActivityIndex,
-        totalActivities: targetActivities.length
-      })
-      
-      targetActivities.splice(targetDayActivityIndex, 0, movedActivity)
-      
-      console.log('📥 Added to day', toItem.dayIndex, '-', movedActivity.title, 'at position', targetDayActivityIndex)
-      
-      // Update target day
-      newItineraryData[toItem.dayIndex!] = {
-        ...targetDay,
-        activities: targetActivities
-      }
-    }
-    
-    // Update the state with the new data
-    setItineraryData(newItineraryData)
-    console.log('✅', isSameDay ? 'Same-day' : 'Cross-day', 'reorder completed')
-  }, [itineraryData])
+  // Removed internal reorder logic
 
   const toggleRoute = useCallback((routeId: string) => {
     setExpandedRoutes((prev) => {
@@ -1271,111 +1077,124 @@ export const ItineraryScreen = () => {
         )}
       </View>
 
-      {/* Multi-day Reorderable List */}
-      <View style={{ flex: 1 }}>
-        <ReorderableList
-          data={itineraryData.flatMap((day, dayIndex) => {
-            const dayInfo = getDayInfo(day)
-            const items: Array<{
-              id: string
-              type: 'day-header' | 'activity'
-              day: Day
-              dayIndex: number
-              dayInfo?: { weekday: string; date: string }
-              activity?: Activity
-              activityIndex?: number
-            }> = []
-            
-            // Add day header as a non-draggable item
-            items.push({
-              id: `day-${day.id}`,
-              type: 'day-header',
-              day,
-              dayIndex,
-              dayInfo
-            })
-            
-            // Add activities as draggable items
-            day.activities.forEach((activity, activityIndex) => {
-              items.push({
-                id: `activity-${activity.id}`,
-                type: 'activity',
-                activity,
-                day,
-                dayIndex,
-                activityIndex
-              })
-            })
-            
-            return items
-          })}
-          onReorder={handleReorder}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }: { item: any; index: number }) => {
-            if (item.type === 'day-header') {
-              return (
-                <View key={item.id}>
-                  {/* Day Header - scrolls with content */}
-      <View
-        style={{
-          paddingHorizontal: spacing.md,
+      {/* Multi-day planner using Sortables Task Planner pattern (zones per day) */}
+      <Animated.ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
+        <Sortable.PortalProvider>
+          <Sortable.Layer>
+            <Sortable.MultiZoneProvider>
+              {itineraryData.map((day, dayIndex) => (
+                <View key={`day-${day.id}`}>
+                  {/* Day Header */}
+                  <View
+                    style={{
+                      paddingHorizontal: spacing.md,
                       paddingVertical: spacing.md,
-                      borderBottomWidth: item.dayIndex < itineraryData.length - 1 ? 1 : 0,
+                      borderBottomWidth: dayIndex < itineraryData.length - 1 ? 1 : 0,
                       borderBottomColor: colors.border + "30",
-          backgroundColor: colors.background,
-        }}
-      >
+                      backgroundColor: colors.background,
+                    }}
+                  >
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View>
+                      <View>
                         <Text style={{ fontSize: 20, fontWeight: "600", color: colors.text }}>
-                          {item.dayInfo?.weekday} <Text style={{ color: colors.textDim }}>{item.dayInfo?.date}</Text>
-            </Text>
-                        <Text style={{ color: colors.textDim, marginTop: 6 }}>{item.day.city}</Text>
-          </View>
-          <TouchableOpacity>
-            <Text style={{ color: colors.tint, fontSize: 16 }}>+ Add</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-                </View>
-              )
-            } else if (item.type === 'activity') {
-              // Type guard to ensure we have the required properties
-              if (!item.activity || typeof item.activityIndex !== 'number') {
-                return null
-              }
-              
-              // Activity item
-              const { activity, day, activityIndex } = item
-              const route = getRouteForActivity(day, activity.id)
-              const isLastActivity = activityIndex === day.activities.length - 1
-              
-            return (
-              <View key={item.id}>
-                  {/* Activity Card */}
-                  <DraggableItem item={activity} colors={colors} spacing={spacing} layoutDensity={layoutDensity} />
-                  
-                  {/* Transportation Chunk (if not last activity and route exists) */}
-                  {!isLastActivity && route && densityStyles[layoutDensity].transportVisibility !== 'minimal' && (
-                    <TravelChunk
-                      route={route}
-                      fromPlace={activity.title}
-                      toPlace={day.activities[activityIndex + 1]?.title || "Next stop"}
-                      colors={colors}
-                      spacing={spacing}
-                      expanded={expandedRoutes.has(route.id)}
-                      onToggle={() => toggleRoute(route.id)}
-                      layoutDensity={layoutDensity}
+                          {getDayInfo(day)?.weekday} <Text style={{ color: colors.textDim }}>{getDayInfo(day)?.date}</Text>
+                        </Text>
+                        <Text style={{ color: colors.textDim, marginTop: 6 }}>{day.city}</Text>
+                      </View>
+                      <TouchableOpacity>
+                        <Text style={{ color: colors.tint, fontSize: 16 }}>+ Add</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Zone for this day */}
+                  <DayZone
+                    dayIndex={dayIndex}
+                    itineraryData={itineraryData}
+                    setItineraryData={setItineraryData}
+                    colors={colors}
+                    spacing={spacing}
+                    layoutDensity={layoutDensity}
+                    scrollRef={scrollRef}
                   />
-                )}
-              </View>
-            )
-            }
-            
-            return null
-          }}
-        />
-      </View>
+                </View>
+              ))}
+            </Sortable.MultiZoneProvider>
+          </Sortable.Layer>
+        </Sortable.PortalProvider>
+      </Animated.ScrollView>
     </View>
+  )
+}
+
+// DayZone: one sortable zone per day, using the library's multi-zone pattern
+const DayZone: React.FC<{
+  dayIndex: number
+  itineraryData: Day[]
+  setItineraryData: React.Dispatch<React.SetStateAction<Day[]>>
+  colors: any
+  spacing: any
+  layoutDensity: LayoutDensity
+  scrollRef: any
+}> = ({ dayIndex, itineraryData, setItineraryData, colors, spacing, layoutDensity, scrollRef }) => {
+  const day = itineraryData[dayIndex]
+  const items = day.activities
+  const lastActiveKeyRef = useRef<string | null>(null)
+
+  return (
+    <Sortable.BaseZone
+      style={{ paddingTop: spacing.sm }}
+      // When item is dropped into this day zone, rebuild lists based on library state
+      onItemDrop={() => {
+        const droppedId = lastActiveKeyRef.current
+        if (!droppedId) return
+
+        setItineraryData((prev) => {
+          // Find source day
+          const sourceDayIndex = prev.findIndex((d) => d.activities.some((a) => a.id === droppedId))
+          if (sourceDayIndex < 0) return prev
+          if (sourceDayIndex === dayIndex) return prev
+
+          const next = [...prev]
+          const sourceDay = next[sourceDayIndex]
+          const targetDay = next[dayIndex]
+          const activityIdx = sourceDay.activities.findIndex((a) => a.id === droppedId)
+          if (activityIdx < 0) return prev
+
+          const [moved] = sourceDay.activities.splice(activityIdx, 1)
+          // Insert at end for now (like demo); target list order can be adjusted by subsequent onDragEnd
+          targetDay.activities.push(moved)
+          next[sourceDayIndex] = { ...sourceDay }
+          next[dayIndex] = { ...targetDay }
+          return next
+        })
+      }}
+    >
+      <Sortable.Grid
+        customHandle
+        scrollableRef={scrollRef}
+        autoScrollEnabled
+        autoScrollDirection="vertical"
+        columns={1}
+        keyExtractor={(a: Activity) => a.id}
+        data={items}
+        onDragStart={({ key }) => {
+          lastActiveKeyRef.current = key
+        }}
+        renderItem={({ item }) => (
+          <View key={`activity-${item.id}`}>
+            <DraggableItem item={item} colors={colors} spacing={spacing} layoutDensity={layoutDensity} />
+          </View>
+        )}
+        onDragEnd={({ data }) => {
+          // Update only this day's activities using library-provided order
+          setItineraryData((prev) => {
+            const copy = [...prev]
+            copy[dayIndex] = { ...copy[dayIndex], activities: data as Activity[] }
+            return copy
+          })
+        }}
+      />
+    </Sortable.BaseZone>
   )
 }
