@@ -3,7 +3,7 @@ import { CompositeScreenProps } from "@react-navigation/native"
 
 import type { AppStackParamList, AppStackScreenProps } from "./AppNavigator"
 import { Icon } from "../components/Icon"
-import { DashboardScreen } from "../screens/Hopla/DashboardScreen"
+import { DemoShowroomScreen } from "../screens/DemoShowroomScreen/DemoShowroomScreen"
 import { DocumentVaultScreen } from "../screens/Hopla/DocumentVaultScreen"
 import { ExploreScreen } from "../screens/Hopla/ExploreScreen"
 import { ItineraryScreen } from "../screens/Hopla/ItineraryScreen"
@@ -50,7 +50,7 @@ export function DemoNavigator() {
     >
       <Tab.Screen
         name="DemoShowroom"
-        component={DashboardScreen}
+        component={DemoShowroomScreen}
         options={{
           tabBarLabel: "Home",
           tabBarIcon: ({ focused }: { focused: boolean }) => (
@@ -84,7 +84,7 @@ export function DemoNavigator() {
         component={ExploreScreen}
         options={{
           tabBarLabel: "Explore",
-          tabBarIcon: ({ focused }) => (
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
             <Icon icon="compass" color={focused ? colors.tint : colors.tintInactive} size={20} />
           ),
         }}
